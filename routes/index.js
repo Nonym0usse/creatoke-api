@@ -2,17 +2,15 @@ var express = require('express');
 var router = express.Router();
 const firebase = require('../database/firebase');
 const User = require("../models/User");
+const Music = require("../middleware/Music");
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  const productsRef = firebase.db.collection('products');
-  const user = new User('ismael', 'test');
-  productsRef.doc().set(user).then(r => res.send(r));
+  const music = new Music();
+  music.getMusics()
+      .then(r => r.docs.map(x => res.status(200).json(x.data())))
+      .catch(e => res.status(500).json(e))
 });
 
-router.get('/', function(req, res, next) {
-  const productsRef = firebase.db.collection('products');
-  productsRef.doc().set({'title': "bonjour"}).then(r => res.send(r));
-});
 
 module.exports = router;
