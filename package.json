@@ -3,17 +3,24 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon ./bin/www"
+    "start": "nodemon — exec babel-node ./bin/www"
   },
   "dependencies": {
+    "@babel/core": "^7.21.4",
+    "@babel/node": "^7.20.7",
+    "@babel/preset-env": "^7.21.4",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "express": "~4.16.1",
     "firebase": "^9.19.1",
     "firebase-admin": "^11.5.0",
-    "morgan": "~1.9.1"
+    "morgan": "~1.9.1",
+    "querystring": "^0.2.1"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^7.21.0",
     "nodemon": "^2.0.22"
   }
 }

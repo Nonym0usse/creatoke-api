@@ -1,13 +1,11 @@
-class User {
+let User =  {
+    email: '',
 
-
-    constructor(email, password) {
-        this.email = email;
-        this.password = password;
-        return {
-            email: this.email,
-            password: this.password,
-        };
+    set mail(value){
+        if (typeof value !== 'string') {
+            throw new Error('Name must be a string');
+        }
+        this.email = value;
     }
 }
 
