@@ -37,59 +37,60 @@ class MusicModel {
     validate() {
         const errors = {};
 
-        if (!validator.isLength(this.title, { min: 1, max: 255 }) || !validator.isEmpty(this.title)) {
+
+        if (!this.title || !validator.isLength(this.title, { min: 1, max: 255 })) {
             errors.title = 'Title must be between 1 and 255 characters long';
         }
 
-        if (!validator.isLength(this.description_fr, { min: 1, max: 2048 }) || !validator.isEmpty(this.description_fr)) {
+        if (!this.description_fr || !validator.isLength(this.description_fr, { min: 1, max: 2048 })) {
             errors.description_fr = 'Description must be between 1 and 2048 characters long';
         }
 
-        if (!validator.isLength(this.description_en, { min: 1, max: 2048 }) || !validator.isEmpty(this.description_en)) {
+        if (!this.description_en || !validator.isLength(this.description_en, { min: 1, max: 2048 })) {
             errors.description_en = 'English description must be between 1 and 2048 characters long';
         }
 
-        if (!validator.isFloat(this.price) || !validator.isEmpty(this.price)) {
+        if (!this.price || !validator.isFloat(this.price)) {
             errors.price = 'Price must be float number';
         }
 
-        if (!validator.isLength(this.lyrics_fr, { min: 1})  || !validator.isEmpty(this.lyrics_fr)) {
+        if (!this.lyrics_fr || !validator.isLength(this.lyrics_fr, { min: 1})) {
             errors.lyrics_fr = 'Lyrics must be min 1 characters long';
         }
 
-        if (!validator.isLength(this.author, { min: 1 }) || !validator.isEmpty(this.author)) {
+        if (!this.author || !validator.isLength(this.author, { min: 1 })) {
             errors.author = 'Duration must be a number greater than 0';
         }
 
-        if (!validator.isLength(this.full_creatoke, { min: 1 })  || !validator.isEmpty(this.full_creatoke)) {
+        if (!this.full_creatoke || !validator.isLength(this.full_creatoke, { min: 1 })) {
             errors.full_creatoke = 'Full creatoke must be a number greater than 0';
         }
 
-        if (!validator.isBoolean(this.isOnline) || !validator.isEmpty(this.isOnline)) {
+        if (!this.isOnline || !validator.isBoolean(this.isOnline)) {
             errors.isOnline = 'IsOnline must be a boolean';
         }
 
-        if (!validator.isBoolean(this.isHighLighted) || !validator.isEmpty(this.isHighLighted)) {
+        if (!this.isHighLighted || !validator.isBoolean(this.isHighLighted)) {
             errors.isHighLighted = 'IsHighlighted must be a boolean';
         }
 
-        if (!validator.isLength(this.music_extract, { min: 1 }) || !validator.isEmpty(this.music_extract)) {
+        if (!this.music_extract || !validator.isLength(this.music_extract, { min: 1 })) {
             errors.music_extract = 'Music extract must be a number greater than 0';
         }
 
-        if (!validator.isLength(this.full_music, { min: 1 }) || !validator.isEmpty(this.full_music)) {
+        if (!this.full_music || !validator.isLength(this.full_music, { min: 1 })) {
             errors.full_music = 'full_music must be a number greater than 0';
         }
 
-        if (!validator.isLength(this.youtube_url, { min: 1 }) || !validator.isEmpty(this.youtube_url)) {
+        if (!this.youtube_url || !validator.isLength(this.youtube_url, { min: 1 })) {
             errors.youtube_url = 'youtube_url must be a number greater than 0';
         }
 
-        if (!validator.isLength(this.picture, { min: 1 }) || !validator.isEmpty(this.picture)) {
+        if (!this.picture || !validator.isLength(this.picture, { min: 1 })) {
             errors.picture = 'Duration must be a number greater than 0';
         }
 
-        if (!validator.isLength(this.spotify, { min: 1 }) || validator.isEmpty(this.spotify)) {
+        if (!this.spotify || !validator.isLength(this.spotify, { min: 1 })) {
             errors.spotify = 'Duration must be a number greater than 0';
         }
 
