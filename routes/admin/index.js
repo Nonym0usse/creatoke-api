@@ -15,7 +15,7 @@ router.get('/list-music', async function (req, res, next) {
     const music = new MusicModel(req.body);
     try {
         const musics = await musicsAdmin.listMusics()
-        res.status(200).send(musics);
+        res.status(200).json(musics);
     } catch (error) {
         res.status(400).json(error.message);
     }
