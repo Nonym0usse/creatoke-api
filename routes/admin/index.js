@@ -6,18 +6,9 @@ const router = express.Router();
 const musicsAdmin = new MusicsAdmin();
 
 router.post('/create-music', async function (req, res, next) {
-    const music = new MusicModel(req.body);
-    try {
-        const error = await music.validate();
-        if(!error){
-            musicsAdmin.createMusic(music).then(() => res.status(200).json({"success": "OK"}))
-                .catch((e) => res.status(400).send(e))
-        }else{
-            res.status(400).json(error);
-        }
-    } catch (error) {
-        res.status(400).json(error.message);
-    }
+    console.log(req.body)
+    musicsAdmin.createMusic(req.body).then(() => res.status(200).json({"success": "OK"}))
+    .catch((e) => res.status(400).send(e))
 });
 
 router.get('/list-music', async function (req, res, next) {
