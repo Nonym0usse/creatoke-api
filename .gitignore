@@ -1,5 +1,6 @@
-/database
+/database/
 /node_modules
 .DS_Store
 /.idea
 package-lock.json
+/database/creatoke-admin.json
