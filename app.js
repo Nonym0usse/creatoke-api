@@ -7,6 +7,8 @@ const cors = require('cors');
 
 var indexRouter = require('./routes/index');
 var adminRouter = require('./routes/admin/index');
+var contactRouter = require('./routes/admin/contact');
+var categoryRouter = require('./routes/admin/category');
 
 var app = express();
 
@@ -18,6 +20,8 @@ app.use(cors());
 
 app.use('/', indexRouter);
 app.use('/admin', adminRouter);
+app.use('/contact', contactRouter);
+app.use('/category', categoryRouter);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
