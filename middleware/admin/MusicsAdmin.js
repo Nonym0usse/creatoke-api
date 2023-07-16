@@ -1,9 +1,16 @@
 const firebase = require('../../database/firebase');
+const connectionSchema = require("../../models/musicSchema");
 
 class MusicsAdmin {
     musicRef = firebase.db.collection('musics');
+
     async createMusic(music) {
         new Promise((resolve, reject) => {
+            try {
+                connectionSchema.validateAsync(music);
+            } catch (error) {
+                reject("INVALID_PARAMS");
+            }
             this.musicRef.doc().set({ ...music }).then(() => resolve('OK')).catch((e) => reject(e));
         })
     }
@@ -17,20 +24,20 @@ class MusicsAdmin {
             })
             return data;
         } catch (e) {
-
+            throw new Error("ERROR_SERVER");
         }
     }
 
     async singleMusic(id) {
         try {
             const data = [];
-            const snapshot = await this.musicRef.where('id' == id);
+            const snapshot = await this.musicRef.where('id', "==", id);
             snapshot.docs.map(function (map) {
                 data.push({ id: map.id, ...map.data() })
             })
             return data;
         } catch (e) {
-
+            throw new Error("ERROR_SERVER");
         }
     }
 
@@ -49,7 +56,9 @@ class MusicsAdmin {
     async highlightMusic() {
         try {
             const data = [];
+            //const snapshot = await this.musicRef.orderBy('created_at').get();
             const snapshot = await this.musicRef.get();
+
             snapshot.docs.map(function (map) {
                 data.push({ id: map.id, ...map.data() })
             })
@@ -66,10 +75,22 @@ class MusicsAdmin {
             snapshot.docs.map(function (map) {
                 data.push({ id: map.id, ...map.data() })
             })
-            console.log(data)
             return data;
         } catch (e) {
 
+        }
+    }
+
+    async searchRecommandSongs(limit) {
+        try {
+            const data = [];
+            const snapshot = await this.musicRef.limit(parseInt(limit)).get();
+            snapshot.docs.map(function (map) {
+                data.push({ id: map.id, ...map.data() })
+            })
+            return data;
+        } catch (e) {
+            console.log(e)
         }
     }
 }

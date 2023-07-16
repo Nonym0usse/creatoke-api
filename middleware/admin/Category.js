@@ -10,7 +10,6 @@ class Category {
             snapshot.docs.map(function (map) {
                 data.push({ id: map.id, ...map.data() })
             })
-            console.log(data)
             return data;
         } catch (e) {
 
@@ -24,7 +23,6 @@ class Category {
             snapshot.docs.map(function (map) {
                 data.push({ id: map.id, ...map.data() })
             })
-            console.log(data)
             return data;
         } catch (e) {
 
@@ -43,6 +41,17 @@ class Category {
         } catch (e) {
 
         }
+    }
+
+    async createCategory(music) {
+        new Promise((resolve, reject) => {
+            try {
+                connectionSchema.validateAsync(music);
+            } catch (error) {
+                reject("INVALID_PARAMS");
+            }
+            this.musicRef.doc().set({ ...music }).then(() => resolve('OK')).catch((e) => reject(e));
+        })
     }
 }
 

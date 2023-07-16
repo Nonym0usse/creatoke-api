@@ -11,7 +11,6 @@ router.post('/create-music', async function (req, res, next) {
 });
 
 router.get('/list-music', async function (req, res, next) {
-    const music = new MusicModel(req.body);
     try {
         const musics = await musicsAdmin.listMusics()
         res.status(200).json({"ok" : musics});
@@ -20,12 +19,9 @@ router.get('/list-music', async function (req, res, next) {
     }
 });
 
-router.get('/single-music', async function (req, res, next) {
-    const music = new MusicModel(req.body);
-    console.log('okokok')
+router.get('/single-music/:id', async function (req, res, next) {
     try {
         const musics = await musicsAdmin.singleMusic(req.params.id)
-        console.log(req.params.id)
         res.status(200).json({"ok" : musics});
     } catch (error) {
         res.status(400).json(error.message);
@@ -57,7 +53,7 @@ router.delete('/delete-music', async function (req, res, next) {
 
 router.get('/highlight-music', async function (req, res, next) {
     try {
-        musicsAdmin.highlightMusic().then((data) => res.status(200).json({"success": data}))
+        musicsAdmin.highlightMusic().then((data) => res.status(200).json(data))
     } catch (error) {
         res.status(400).json(error.message);
     }
@@ -71,4 +67,11 @@ router.get('/getSongByCategory/:id', async function (req, res, next) {
     }
 });
 
+router.get('/preview-searching/:limit', async function (req, res, next) {
+    try {
+        musicsAdmin.searchRecommandSongs(req.params.limit).then((data) => res.status(200).json(data))
+    } catch (error) {
+        res.status(400).json(error.message);
+    }
+});
 module.exports = router;
