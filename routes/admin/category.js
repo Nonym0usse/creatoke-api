@@ -32,4 +32,16 @@ router.get('/getSubCategoryByID/:id', async function (req, res, next) {
     }
 });
 
+router.delete('/delete/:id', async function (req, res, next) {
+    try {
+        await category.deleteCategory(req.params.id).then((data) => res.status(200).json(data))
+    } catch (error) {
+        res.status(400).json(error.message);
+    }
+});
+
+router.post('/create-category', async function (req, res, next) {
+    category.createCategory(req.body).then(() => res.status(200).json({"success": "OK"}))
+        .catch((e) => res.status(400).send(e))
+});
 module.exports = router;

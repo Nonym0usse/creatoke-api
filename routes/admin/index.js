@@ -13,7 +13,7 @@ router.post('/create-music', async function (req, res, next) {
 router.get('/list-music', async function (req, res, next) {
     try {
         const musics = await musicsAdmin.listMusics()
-        res.status(200).json({"ok" : musics});
+        res.status(200).json(musics);
     } catch (error) {
         res.status(400).json(error.message);
     }
@@ -21,10 +21,9 @@ router.get('/list-music', async function (req, res, next) {
 
 router.get('/single-music/:id', async function (req, res, next) {
     try {
-        const musics = await musicsAdmin.singleMusic(req.params.id)
-        res.status(200).json({"ok" : musics});
+        await musicsAdmin.singleMusic(req.params.id).then((data) => res.status(200).json(data))
     } catch (error) {
-        res.status(400).json(error.message);
+        res.status(400).json(error);
     }
 });
 

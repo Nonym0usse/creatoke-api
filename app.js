@@ -9,6 +9,8 @@ var indexRouter = require('./routes/index');
 var adminRouter = require('./routes/admin/index');
 var contactRouter = require('./routes/admin/contact');
 var categoryRouter = require('./routes/admin/category');
+var licenceRouter = require('./routes/admin/licence');
+var paymentRouter = require('./routes/admin/payment');
 
 var app = express();
 
@@ -22,6 +24,8 @@ app.use('/', indexRouter);
 app.use('/admin', adminRouter);
 app.use('/contact', contactRouter);
 app.use('/category', categoryRouter);
+app.use('/licence', licenceRouter);
+app.use('/payment', paymentRouter);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -34,6 +38,6 @@ app.use(function(req, res, next) {
   next(createError(404));
 });
 
-app.listen(process.env.PORT || 3000);
+app.listen(process.env.PORT || 3001);
 
 module.exports = app;

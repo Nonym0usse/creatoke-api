@@ -30,14 +30,12 @@ class MusicsAdmin {
 
     async singleMusic(id) {
         try {
-            const data = [];
-            const snapshot = await this.musicRef.where('id', "==", id);
-            snapshot.docs.map(function (map) {
-                data.push({ id: map.id, ...map.data() })
-            })
-            return data;
+            const snapshot = await this.musicRef.doc(id).get();
+            const musicData = snapshot.data();
+            musicData.id = snapshot.id;
+            return musicData;
         } catch (e) {
-            throw new Error("ERROR_SERVER");
+            console.log(e)
         }
     }
 
