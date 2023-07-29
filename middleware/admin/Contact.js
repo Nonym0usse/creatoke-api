@@ -3,11 +3,14 @@ const nodemailer = require('nodemailer')
 const fs = require('fs');
 const ejs = require('ejs');
 const {join} = require("path");
-
+const {MusicsAdmin} = require("./MusicsAdmin");
+const {Licence} = require("./Licence");
+const {get} = require("axios");
 class Contact {
+    music =  [];
     async sendEmail(data) {
         new Promise(async (resolve, reject) => {
-            if (!data.email || !data.name || !data.text || !data.tel) {
+            if (!data.email || !data.name || !data.message || !data.tel) {
                 throw Error('INVALID_PARAMS');
             }
             const transporter = nodemailer.createTransport({
@@ -44,9 +47,6 @@ class Contact {
 
     async sendEmailPayment(data) {
         new Promise(async (resolve, reject) => {
-            if (!data.email || !data.name || !data.text || !data.tel) {
-                throw Error('INVALID_PARAMS');
-            }
             const transporter = nodemailer.createTransport({
                 host: 'mail.colocservice.fr',
                 port: 465, // Use the appropriate port (587 for TLS or 465 for SSL)
@@ -57,31 +57,61 @@ class Contact {
                 },
 
             });
-            const image = await fs.promises.readFile('templates/logo.png');
-            data.image = `data:image/jpeg;base64,${image.toString('base64')}`;
+            const imageBuffer = await fs.promises.readFile('templates/logo.png');
+            data.logo = imageBuffer.toString('base64');
+            const filePath = await this.downloadFileFromUrl(data.type_chanson);
             const emailHtml = await this.renderEmailTemplate('templates/purchase-confirm.ejs', data);
             const mailOptions = {
-                from: 'colocservice@hotmail.com', // Sender's email address
-                to: data.email, // Recipient's email address
+                from: 'contact@colocservice.fr',
+                to: data.email_client,
                 subject: "Créatoké : Merci pour votre achat." , // Email subject
-                html: emailHtml
+                html: emailHtml,
+                attachments: [
+                    {
+                        filename: filePath, // Set the desired name of the attachment
+                        path: filePath, // Path to the downloaded file
+                    },
+                ],
             };
-
-            // Send the email
             await transporter.sendMail(mailOptions, (error, info) => {
                 if (error) {
                     console.log(error)
                     reject(error)
                 } else {
                     resolve("Merci, votre candidature à été envoyée");
+                    this.deleteFile(filePath);
                 }
             });
         })
     }
+
+    deleteFile(filePath) {
+        fs.unlinkSync(filePath);
+        console.log('File deleted successfully:', filePath);
+    }
+
     async renderEmailTemplate(templatePath, data) {
         const template = await fs.promises.readFile(templatePath, 'utf8');
         return ejs.render(template, data);
     }
+    async downloadFileFromUrl(url) {
+        try {
+            const response = await get(url, { responseType: 'arraybuffer' });
+            const fileName = 'creatoke_' + Date.now() + '.' + this.getFileExtensionFromUrl(url); // Generate a unique file name
+            fs.writeFileSync(fileName, response.data);
+            return fileName;
+        } catch (error) {
+            console.error('Error downloading the file:', error);
+            return null;
+        }
+    }
+
+     getFileExtensionFromUrl(url) {
+        const filename = url.substring(url.lastIndexOf('/') + 1);
+        const extension = filename.substring(filename.lastIndexOf('.') + 1);
+        return extension.toLowerCase();
+    }
+
 }
 
 module.exports = { Contact }

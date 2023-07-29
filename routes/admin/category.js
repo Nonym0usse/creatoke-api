@@ -44,4 +44,20 @@ router.post('/create-category', async function (req, res, next) {
     category.createCategory(req.body).then(() => res.status(200).json({"success": "OK"}))
         .catch((e) => res.status(400).send(e))
 });
+
+router.post('/create-background', async function (req, res, next) {
+    category.createBackground(req.body).then(() => res.status(200).json({"success": "OK"}))
+        .catch((e) => res.status(400).send(e))
+});
+
+router.get('/getBackgroundImg', async function (req, res, next) {
+    try {
+        const img = await category.getBackgroundImg()
+        res.status(200).json(img);
+    } catch (error) {
+        res.status(400).json(error.message);
+    }
+});
+
+
 module.exports = router;

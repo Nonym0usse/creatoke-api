@@ -34,24 +34,22 @@
         .footer p{
             color: #fff
         }
+
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <img src="<%= image %>" width="400px">
-        <h4>Merci pour votre achat</h4>
+        <img src="data:image/png;base64, <%= logo %>" width="400px">
+        <h4 style="color: #fff">Merci pour votre achat</h4>
     </div>
     <div class="content">
         <p>Bonjour,</p>
-        <p>Quelqu'un souhaiterai rentrer en contact avec vous.</p>
-        <p>Voici les coordonnées de la personne : </p>
-        <ul>
-            <li><strong>Nom & prénom:</strong> <%= name %></li>
-            <li><strong>Numéro de téléphone :</strong> <%= tel %></li>
-            <li><strong>Message :</strong> <%= text %></li>
-        </ul>
-        <p>Votre site internet favori,</p>
+        <p>Confirmation d'achat</p>
+        <p>Nous vous remercions d'avoir effectué votre achat sur notre site. Vous trouverez le lien de téléchargement de la chanson ci-dessous. Pour rappel, voici les termes d'utilisation:</p>
+        <%- licence_type %>
+        <br>
+        <p>Bonne écoute,</p>
         <p>Créatoké</p>
     </div>
     <div class="footer">

@@ -56,6 +56,25 @@ class Category {
             this.categoryRef.doc().set({ ...music }).then(() => resolve('OK')).catch((e) => reject(e));
         })
     }
+
+    async createBackground(img) {
+        new Promise((resolve, reject) => {
+            firebase.db.collection('background').doc().set({ ...img }).then(() => resolve('OK')).catch((e) => reject(e));
+        })
+    }
+
+    async getBackgroundImg() {
+        try {
+            const data = [];
+            const snapshot = await firebase.db.collection('background').get();
+            snapshot.docs.map(function (map) {
+                data.push({ id: map.id, ...map.data() })
+            })
+            return data;
+        } catch (e) {
+
+        }
+    }
 }
 
 module.exports = { Category }

@@ -11,6 +11,7 @@ var contactRouter = require('./routes/admin/contact');
 var categoryRouter = require('./routes/admin/category');
 var licenceRouter = require('./routes/admin/licence');
 var paymentRouter = require('./routes/admin/payment');
+var commentRouter = require('./routes/admin/comment');
 
 var app = express();
 
@@ -26,6 +27,7 @@ app.use('/contact', contactRouter);
 app.use('/category', categoryRouter);
 app.use('/licence', licenceRouter);
 app.use('/payment', paymentRouter);
+app.use('/comment', commentRouter);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
