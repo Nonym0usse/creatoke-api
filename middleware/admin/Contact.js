@@ -105,12 +105,9 @@ class Contact {
     }
 
      extractFileExtension(urlString) {
-         // Split the URL using '/' to extract the file name
-         const parts = urlString.split('/');
-         const fileName = parts[parts.length - 1];
-
-         // Extract the file extension using path.extname
-         return path.extname(fileName).slice(1);
+         const regex = /\.mp3|\.wav/g;
+         const matches = urlString.match(regex);
+         return matches ? matches[0] : null;
     }
 
 }
