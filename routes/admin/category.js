@@ -1,6 +1,7 @@
 const express = require('express');
 const { Category } = require('../../middleware/admin/Category');
 const router = express.Router();
+const verifyTokenMiddleware = require('../../database/auth');
 
 //const contact = new Contact();
 const category = new Category();
@@ -32,7 +33,7 @@ router.get('/getSubCategoryByID/:id', async function (req, res, next) {
     }
 });
 
-router.delete('/delete/:id', async function (req, res, next) {
+router.delete('/delete/:id', verifyTokenMiddleware, async function (req, res, next) {
     try {
         await category.deleteCategory(req.params.id).then((data) => res.status(200).json(data))
     } catch (error) {
@@ -40,12 +41,12 @@ router.delete('/delete/:id', async function (req, res, next) {
     }
 });
 
-router.post('/create-category', async function (req, res, next) {
+router.post('/create-category', verifyTokenMiddleware, async function (req, res, next) {
     category.createCategory(req.body).then(() => res.status(200).json({"success": "OK"}))
         .catch((e) => res.status(400).send(e))
 });
 
-router.post('/create-background', async function (req, res, next) {
+router.post('/create-background', verifyTokenMiddleware, async function (req, res, next) {
     category.createBackground(req.body).then(() => res.status(200).json({"success": "OK"}))
         .catch((e) => res.status(400).send(e))
 });

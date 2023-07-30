@@ -2,10 +2,11 @@ const express = require('express');
 const {MusicModel} = require("../../models/MusicModel");
 const {MusicsAdmin} = require("../../middleware/admin/MusicsAdmin");
 const router = express.Router();
+const verifyTokenMiddleware = require('../../database/auth');
 
 const musicsAdmin = new MusicsAdmin();
 
-router.post('/create-music', async function (req, res, next) {
+router.post('/create-music', verifyTokenMiddleware, async function (req, res, next) {
     musicsAdmin.createMusic(req.body).then(() => res.status(200).json({"success": "OK"}))
     .catch((e) => res.status(400).send(e))
 });
@@ -27,7 +28,7 @@ router.get('/single-music/:id', async function (req, res, next) {
     }
 });
 
-router.put('/update-music', async function (req, res, next) {
+router.put('/update-music', verifyTokenMiddleware, async function (req, res, next) {
     const music = new MusicModel(req.body);
     try {
         const error = await music.validate();
@@ -42,9 +43,9 @@ router.put('/update-music', async function (req, res, next) {
     }
 });
 
-router.delete('/delete-music', async function (req, res, next) {
+router.delete('/delete-music/:id', verifyTokenMiddleware, async function (req, res, next) {
     try {
-        musicsAdmin.deleteMusic(req.query.id).then(() => res.status(200).json({"success": "OK"}))
+        musicsAdmin.deleteMusic(req.params.id).then(() => res.status(200).json({"success": "OK"}))
     } catch (error) {
         res.status(400).json(error.message);
     }

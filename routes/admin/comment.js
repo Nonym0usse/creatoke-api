@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Comment } = require('../../middleware/admin/Comment');
+const verifyTokenMiddleware = require('../../database/auth');
 
 const comment = new Comment();
 
@@ -19,7 +20,7 @@ router.get('/list-all', async function (req, res, next) {
         .catch((e) => res.status(400).send(e))
 });
 
-router.delete('/delete/:id', async function (req, res, next) {
+router.delete('/delete/:id', verifyTokenMiddleware, async function (req, res, next) {
     comment.deleteComment(req.params.id).then((data) => res.status(200).json(data))
         .catch((e) => res.status(400).send(e))
 });

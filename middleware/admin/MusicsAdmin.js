@@ -46,6 +46,7 @@ class MusicsAdmin {
     }
 
     async deleteMusic(id) {
+        console.log(id)
         new Promise((resolve, reject) => {
             this.musicRef.doc(id).delete().then(() => resolve('OK')).catch((e) => reject(e));
         })
