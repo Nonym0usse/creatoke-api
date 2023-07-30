@@ -2,9 +2,7 @@ const firebase = require('../../database/firebase');
 const nodemailer = require('nodemailer')
 const fs = require('fs');
 const ejs = require('ejs');
-const {join} = require("path");
-const {MusicsAdmin} = require("./MusicsAdmin");
-const {Licence} = require("./Licence");
+const path = require("path");
 const {get} = require("axios");
 class Contact {
     music =  [];
@@ -97,7 +95,7 @@ class Contact {
     async downloadFileFromUrl(url) {
         try {
             const response = await get(url, { responseType: 'arraybuffer' });
-            const fileName = 'creatoke_' + Date.now() + '.' + this.getFileExtensionFromUrl(url); // Generate a unique file name
+            const fileName = 'creatoke_' + Date.now() + '.' + this.extractFileExtension(url); // Generate a unique file name
             fs.writeFileSync(fileName, response.data);
             return fileName;
         } catch (error) {
@@ -106,10 +104,10 @@ class Contact {
         }
     }
 
-     getFileExtensionFromUrl(url) {
-        const filename = url.substring(url.lastIndexOf('/') + 1);
-        const extension = filename.substring(filename.lastIndexOf('.') + 1);
-        return extension.toLowerCase();
+     extractFileExtension(urlString) {
+        const parsedUrl = new URL(urlString);
+        const pathname = decodeURIComponent(parsedUrl.pathname);
+        return path.extname(pathname).slice(1);
     }
 
 }
