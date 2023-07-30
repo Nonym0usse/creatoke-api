@@ -1,11 +1,10 @@
-const firebase = require('../../database/firebase');
 const nodemailer = require('nodemailer')
 const fs = require('fs');
 const ejs = require('ejs');
-const {join} = require("path");
-const {MusicsAdmin} = require("./MusicsAdmin");
 const {Licence} = require("./Licence");
 const {get} = require("axios");
+const path = require('path');
+
 class Contact {
     music =  [];
     async sendEmail(data) {
@@ -107,9 +106,8 @@ class Contact {
     }
 
      getFileExtensionFromUrl(url) {
-        const filename = url.substring(url.lastIndexOf('/') + 1);
-        const extension = filename.substring(filename.lastIndexOf('.') + 1);
-        return extension.toLowerCase();
+         const filename = url.split('/').pop(); // Get the filename from the URL
+         return path.extname(filename).slice(1);
     }
 
 }
