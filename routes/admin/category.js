@@ -46,7 +46,7 @@ router.post('/create-category', verifyTokenMiddleware, async function (req, res,
         .catch((e) => res.status(400).send(e))
 });
 
-router.post('/create-background', verifyTokenMiddleware, async function (req, res, next) {
+router.put('/create-background', verifyTokenMiddleware, async function (req, res, next) {
     category.createBackground(req.body).then(() => res.status(200).json({"success": "OK"}))
         .catch((e) => res.status(400).send(e))
 });
@@ -60,5 +60,18 @@ router.get('/getBackgroundImg', async function (req, res, next) {
     }
 });
 
+router.put('/modify-text', verifyTokenMiddleware, async function (req, res, next) {
+    category.modifyText(req.body).then(() => res.status(200).json({"success": "OK"}))
+        .catch((e) => res.status(400).send(e))
+});
+
+router.get('/getlastText', async function (req, res, next) {
+    try {
+        const texts = await category.getTexts()
+        res.status(200).json(texts);
+    } catch (error) {
+        res.status(400).json(error.message);
+    }
+});
 
 module.exports = router;

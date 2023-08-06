@@ -57,9 +57,23 @@ class Category {
         })
     }
 
-    async createBackground(img) {
+    async createBackground(data) {
         new Promise((resolve, reject) => {
-            firebase.db.collection('background').doc().set({ ...img }).then(() => resolve('OK')).catch((e) => reject(e));
+            if(data.id === undefined || data.id === ''){
+                firebase.db.collection('background').doc().set(data?.picture).then(() => resolve('OK')).catch((e) => reject(e));
+            }else{
+                firebase.db.collection('background').doc(data.id).update(data).then(() => resolve('OK')).catch((e) => reject(e));
+            }
+        })
+    }
+
+    async modifyText(text) {
+        new Promise((resolve, reject) => {
+            if(text.id === undefined || text.id === ''){
+                firebase.db.collection('texts').doc().set(text).then(() => resolve('OK')).catch((e) => reject(e));
+            }else{
+                firebase.db.collection('texts').doc(text.id).update(text).then(() => resolve('OK')).catch((e) => reject(e));
+            }
         })
     }
 
@@ -67,6 +81,19 @@ class Category {
         try {
             const data = [];
             const snapshot = await firebase.db.collection('background').get();
+            snapshot.docs.map(function (map) {
+                data.push({ id: map.id, ...map.data() })
+            })
+            return data;
+        } catch (e) {
+
+        }
+    }
+
+    async getTexts() {
+        try {
+            const data = [];
+            const snapshot = await firebase.db.collection('texts').get();
             snapshot.docs.map(function (map) {
                 data.push({ id: map.id, ...map.data() })
             })
