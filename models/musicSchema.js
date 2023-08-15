@@ -6,35 +6,11 @@ const connectionSchema = Joi.object({
     description: Joi.string().required(),
     lyrics: Joi.string(),
     spotifyURL: Joi.string(),
-    full_creatoke: Joi.string().when('category', [
-        {
-            is: 'chanson',
-            then: Joi.string().required(),
-            otherwise: Joi.string().optional()
-        }
-    ]),
-    extract_music: Joi.string().when('category', {
-        is: 'chanson',
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
-    }),
-    full_music: Joi.string().when('category', [
-        {
-            is: 'chanson',
-            then: Joi.string().required(),
-        },
-        {
-            is: 'instrumentaux',
-            then: Joi.string().required(),
-        },
-        {
-            is: 'youtubeurs',
-            then: Joi.string().required(),
-        },
-    ]),
+    url: Joi.required(),
+    full_music: Joi.required(),
+    wav: Joi.required(),
     price_base: Joi.number(),
-    price_base_plus: Joi.number(),
-    price_pro: Joi.number(),
+    price_premium: Joi.number(),
     youtubeURL: Joi.string(),
     category: Joi.string().required(),
     created_at: Joi.string(),
