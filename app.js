@@ -13,7 +13,9 @@ log4js.configure({
   categories: { default: { appenders: ['everything'], level: 'ALL' } }
 });
 
-const logger = log4js.getLogger();
+const loggers = log4js.getLogger();
+loggers.debug('log message');
+
 var certificate = fs.readFileSync( './key.pem' );
 var indexRouter = require('./routes/index');
 var adminRouter = require('./routes/admin/index');
