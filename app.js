@@ -4,19 +4,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const authMiddleware = require('./middleware/auth');
 const cors = require('cors');
-var fs = require('fs');
-var https = require('https');
-const log4js = require('log4js');
 
-log4js.configure({
-  appenders: { everything: { type: 'file', filename: 'logs.log' } },
-  categories: { default: { appenders: ['everything'], level: 'ALL' } }
-});
-
-const loggers = log4js.getLogger();
-loggers.debug('log message');
-
-var certificate = fs.readFileSync( './key.pem' );
 var indexRouter = require('./routes/index');
 var adminRouter = require('./routes/admin/index');
 var contactRouter = require('./routes/admin/contact');
@@ -26,12 +14,6 @@ var paymentRouter = require('./routes/admin/payment');
 var commentRouter = require('./routes/admin/comment');
 
 var app = express();
-app.get('/log', (req, res) => {
-  res.sendFile(path.join(__dirname + '/logs.log'));
-});
-https.createServer({
-    cert: certificate
-}, app).listen(process.env.PORT || 3001);
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -58,5 +40,6 @@ app.use(function(req, res, next) {
   next(createError(404));
 });
 
+app.listen(process.env.PORT || 3001);
 
 module.exports = app;
