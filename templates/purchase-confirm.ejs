@@ -9,6 +9,23 @@
             font-family: Arial, sans-serif;
             line-height: 1.6;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+
         .container {
             max-width: 600px;
             margin: 0 auto;
@@ -49,6 +66,23 @@
         <p>Nous vous remercions d'avoir effectué votre achat sur notre site. Vous trouverez le lien de téléchargement de la chanson ci-dessous. Pour rappel, voici les termes d'utilisation:</p>
         <%- licence_type %>
         <br>
+        <table>
+            <thead>
+            <tr>
+                <th>Image</th>
+                <th>Titre</th>
+                <th>Prix</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><img src="<%= image_chanson %>" width="80px" height="auto" alt="Image"></td>
+                <td><%= titre_chanson %></td>
+                <td><%= price %></td>
+            </tr>
+            <!-- Add more rows as needed -->
+            </tbody>
+        </table>
         <p>Bonne écoute,</p>
         <p>Créatoké</p>
     </div>

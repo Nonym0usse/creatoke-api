@@ -12,6 +12,7 @@ var categoryRouter = require('./routes/admin/category');
 var licenceRouter = require('./routes/admin/licence');
 var paymentRouter = require('./routes/admin/payment');
 var commentRouter = require('./routes/admin/comment');
+var renewTokenRouter = require('./routes/admin/renew-token');
 
 var app = express();
 
@@ -28,6 +29,7 @@ app.use('/category', categoryRouter);
 app.use('/licence', licenceRouter);
 app.use('/payment', paymentRouter);
 app.use('/comment', commentRouter);
+app.use('/auth', renewTokenRouter);
 
 app.use(express.static(path.join(__dirname, 'public')));
 

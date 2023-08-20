@@ -59,9 +59,9 @@ router.get('/highlight-music', async function (req, res, next) {
     }
 });
 
-router.get('/getSongByCategory/:id', async function (req, res, next) {
+router.post('/getSongByCategory/', async function (req, res, next) {
     try {
-        musicsAdmin.getSongByCategory(req.params.id).then((data) => res.status(200).json(data))
+        musicsAdmin.getSongByCategory(req.body).then((data) => res.status(200).json(data))
     } catch (error) {
         res.status(400).json(error.message);
     }

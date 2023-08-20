@@ -67,10 +67,10 @@ class MusicsAdmin {
         }
     }
 
-    async getSongByCategory(id) {
+    async getSongByCategory(params) {
         try {
             const data = [];
-            const snapshot = await this.musicRef.where("category", "==", id.toString()).get();
+            const snapshot = await this.musicRef.where("category", "==", params?.category.toString()).where("subcategory", "==", params?.subcategory.toString()).get()
             snapshot.docs.map(function (map) {
                 data.push({ id: map.id, ...map.data() })
             })

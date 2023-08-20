@@ -59,11 +59,13 @@ class Category {
 
     async createBackground(data) {
         new Promise((resolve, reject) => {
-            if(data.id === undefined || data.id === ''){
-                firebase.db.collection('background').doc().set({picture: data?.picture}).then(() => resolve('OK')).catch((e) => reject(e));
-            }else{
-                firebase.db.collection('background').doc(data.id).update(data).then(() => resolve('OK')).catch((e) => reject(e));
-            }
+            this.getBackgroundImg().then((background) => {
+                background.forEach((backgroundId) => {
+                    if(backgroundId.id){
+                        firebase.db.collection('background').doc(backgroundId.id).delete();
+                    }
+                })
+            }).then(() => firebase.db.collection('background').doc().set({picture: data?.picture})).finally(() => resolve('OK'))
         })
     }
 

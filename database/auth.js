@@ -8,11 +8,16 @@ const verifyTokenMiddleware = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-
+    console.log(token)
     try {
         req.decodedToken = await admin.auth().verifyIdToken(token);
         next();
     } catch (error) {
+        if (error.code === 'auth/id-token-revoked') {
+            console.log('Le token à expiré')
+        } else {
+            console.log(error)
+        }
         return res.status(401).json({ message: 'Invalid token' });
     }
 };

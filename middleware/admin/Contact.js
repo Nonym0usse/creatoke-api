@@ -57,7 +57,13 @@ class Contact {
             });
             const imageBuffer = await fs.promises.readFile('templates/logo.png');
             data.logo = imageBuffer.toString('base64');
-            const filePath = await this.downloadFileFromUrl(data.type_chanson);
+            let filePath = "";
+            console.log(data);
+            if(data?.licence_type === "basic"){
+                filePath = await this.downloadFileFromUrl(data.mp3, '.mp3')
+            }else{
+                filePath = await this.downloadFileFromUrl(data.wav, '.wav')
+            }
             const emailHtml = await this.renderEmailTemplate('templates/purchase-confirm.ejs', data);
             const mailOptions = {
                 from: 'contact@colocservice.fr',
@@ -76,7 +82,7 @@ class Contact {
                     console.log(error)
                     reject(error)
                 } else {
-                    resolve("Merci, votre candidature à été envoyée");
+                    resolve("OK");
                     this.deleteFile(filePath);
                 }
             });
@@ -92,10 +98,10 @@ class Contact {
         const template = await fs.promises.readFile(templatePath, 'utf8');
         return ejs.render(template, data);
     }
-    async downloadFileFromUrl(url) {
+    async downloadFileFromUrl(url, extension) {
         try {
             const response = await get(url, { responseType: 'arraybuffer' });
-            const fileName = 'creatoke_' + Date.now() + '.' + this.extractFileExtension(url); // Generate a unique file name
+            const fileName = 'creatoke_' + Date.now() + extension; // Generate a unique file name
             fs.writeFileSync(fileName, response.data);
             return fileName;
         } catch (error) {
@@ -103,13 +109,6 @@ class Contact {
             return null;
         }
     }
-
-     extractFileExtension(urlString) {
-         const regex = /\.mp3|\.wav/g;
-         const matches = urlString.match(regex);
-         return matches ? matches[0] : null;
-    }
-
 }
 
 module.exports = { Contact }
