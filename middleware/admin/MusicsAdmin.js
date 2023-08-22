@@ -92,6 +92,22 @@ class MusicsAdmin {
             console.log(e)
         }
     }
+
+    async search(searchTerm) {
+        try {
+            const data = [];
+            //const snapshot = await this.musicRef.orderBy('created_at').get();
+            const snapshot = await this.musicRef.where('title', '>=', searchTerm)
+                .where('title', '<=', searchTerm + '\uf8ff').get()
+            snapshot.docs.map(function (map) {
+                data.push({ id: map.id, ...map.data() })
+            })
+            return data;
+        } catch (e) {
+            console.log(e)
+        }
+    }
+
 }
 
 module.exports = { MusicsAdmin }
