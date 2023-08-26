@@ -1,38 +1,19 @@
 const Joi = require("joi");
-
 const connectionSchema = Joi.object({
     title: Joi.string().required(),
     image: Joi.string().required(),
     description: Joi.string().required(),
     lyrics: Joi.string(),
     spotifyURL: Joi.string(),
-    full_creatoke: Joi.string().when('category', [
-        {
-            is: 'chanson',
-            then: Joi.string().required(),
-            otherwise: Joi.string().optional()
-        }
-    ]),
     url: Joi.required(),
-    full_music: Joi.string().when('category', [
-        {
-            is: 'chanson',
-            then: Joi.string().required(),
-        },
-        {
-            is: 'instrumentaux',
-            then: Joi.string().required(),
-        },
-        {
-            is: 'youtubeurs',
-            then: Joi.string().required(),
-        },
-    ]),
-    wav: Joi.required(),
-    mp3: Joi.required(),
-    price_base: Joi.number(),
-    price_premium: Joi.number(),
-    youtubeURL: Joi.string(),
+    creatoke_wav: Joi.optional(),
+    chanson_wav: Joi.required(),
+    creatoke: Joi.optional(),
+    price_base_creatoke: Joi.optional(),
+    price_premium_creatoke: Joi.optional(),
+    price_base_chanson: Joi.number().optional(),
+    price_premium_chanson: Joi.number().optional(),
+    youtubeURL: Joi.string().optional(),
     category: Joi.string().required(),
     subcategory: Joi.string().required(),
     created_at: Joi.string(),
