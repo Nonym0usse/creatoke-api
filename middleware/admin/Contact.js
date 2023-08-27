@@ -45,7 +45,6 @@ class Contact {
 
     async sendEmailPayment(data) {
         new Promise(async (resolve, reject) => {
-            console.log(data)
             const transporter = nodemailer.createTransport({
                 host: 'mail.colocservice.fr',
                 port: 465, // Use the appropriate port (587 for TLS or 465 for SSL)

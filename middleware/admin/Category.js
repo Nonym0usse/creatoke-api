@@ -46,7 +46,7 @@ class Category {
 
     async deleteCategory(data) {
         new Promise((resolve, reject) => {
-            this.categoryRef.doc(data.id).delete().then(() => this.getAllCategory().then(data => console.log(data)).catch((e) => console.log(e)))
+            this.categoryRef.doc(data.id).delete().then(() => this.getAllCategory().then(data => resolve(data)).catch((e) => console.log(e)))
             this.bucket.file(`category/${data.picture}`).delete();
         })
     }
@@ -64,9 +64,10 @@ class Category {
                 background.forEach((backgroundId) => {
                     if(backgroundId.id){
                         firebase.db.collection('background').doc(backgroundId.id).delete();
+                        this.bucket.file(`background/${backgroundId.picture_name}`).delete();
                     }
                 })
-            }).then(() => firebase.db.collection('background').doc().set({picture: data?.picture})).finally(() => resolve('OK'))
+            }).then(() => firebase.db.collection('background').doc().set({picture: data?.picture, picture_name: data?.picture_name})).finally(() => resolve('OK'))
         })
     }
 

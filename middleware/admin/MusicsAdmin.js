@@ -1,16 +1,11 @@
 const firebase = require('../../database/firebase');
-const connectionSchema = require("../../models/musicSchema");
 
 class MusicsAdmin {
     musicRef = firebase.db.collection('musics');
+    bucket = firebase.admin.storage().bucket();
 
     async createMusic(music) {
         new Promise((resolve, reject) => {
-            try {
-                connectionSchema.validateAsync(music);
-            } catch (error) {
-                reject("INVALID_PARAMS");
-            }
             this.musicRef.doc().set({ ...music }).then(() => resolve('OK')).catch((e) => reject(e));
         })
     }
@@ -46,10 +41,18 @@ class MusicsAdmin {
     }
 
     async deleteMusic(id) {
-        console.log(id)
-        new Promise((resolve, reject) => {
-            this.musicRef.doc(id).delete().then(() => resolve('OK')).catch((e) => reject(e));
-        })
+        try {
+            const snapshot = await this.musicRef.doc(id).get();
+            const musicData = snapshot.data();
+            const nameFields = Object.keys(musicData).filter(key => key.endsWith('_name'));
+            const nameFieldValues = nameFields.map(key => musicData[key]);
+            nameFieldValues.forEach((field) => {
+                this.bucket.file(`songs/${field}`).delete();
+            });
+            this.musicRef.doc(musicData.id).delete().then(() => resolve('OK')).catch((e) => console.error(e));
+        } catch (e) {
+            console.log(e)
+        }
     }
 
     async highlightMusic() {
@@ -107,7 +110,6 @@ class MusicsAdmin {
             console.log(e)
         }
     }
-
 }
 
 module.exports = { MusicsAdmin }

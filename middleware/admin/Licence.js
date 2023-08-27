@@ -1,5 +1,4 @@
 const firebase = require('../../database/firebase');
-const connectionSchema = require("../../models/musicSchema");
 
 class Licence {
     licenceRef = firebase.db.collection('licence');
