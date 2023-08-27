@@ -4,7 +4,7 @@ const {resolve} = require("@babel/core/lib/vendor/import-meta-resolve");
 
 class Category {
     categoryRef = firebase.db.collection('category');
-
+    bucket = firebase.admin.storage().bucket();
     async getAllCategory() {
         try {
             const data = [];
@@ -44,9 +44,10 @@ class Category {
         }
     }
 
-    async deleteCategory(id) {
+    async deleteCategory(data) {
         new Promise((resolve, reject) => {
-            this.categoryRef.doc(id).delete().then(() => this.getAllCategory().then(data => console.log(data)).catch((e) => console.log(e)))
+            this.categoryRef.doc(data.id).delete().then(() => this.getAllCategory().then(data => console.log(data)).catch((e) => console.log(e)))
+            this.bucket.file(`category/${data.picture}`).delete();
         })
     }
 

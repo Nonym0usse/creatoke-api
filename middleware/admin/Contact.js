@@ -45,6 +45,7 @@ class Contact {
 
     async sendEmailPayment(data) {
         new Promise(async (resolve, reject) => {
+            console.log(data)
             const transporter = nodemailer.createTransport({
                 host: 'mail.colocservice.fr',
                 port: 465, // Use the appropriate port (587 for TLS or 465 for SSL)
@@ -57,25 +58,13 @@ class Contact {
             });
             const imageBuffer = await fs.promises.readFile('templates/logo.png');
             data.logo = imageBuffer.toString('base64');
-            let filePath = "";
-            console.log(data);
-            if(data?.licence_type === "basic"){
-                filePath = await this.downloadFileFromUrl(data.mp3, '.mp3')
-            }else{
-                filePath = await this.downloadFileFromUrl(data.wav, '.wav')
-            }
+
             const emailHtml = await this.renderEmailTemplate('templates/purchase-confirm.ejs', data);
             const mailOptions = {
                 from: 'contact@colocservice.fr',
                 to: data.email_client,
                 subject: "Créatoké : Merci pour votre achat." , // Email subject
                 html: emailHtml,
-                attachments: [
-                    {
-                        filename: filePath, // Set the desired name of the attachment
-                        path: filePath, // Path to the downloaded file
-                    },
-                ],
             };
             await transporter.sendMail(mailOptions, (error, info) => {
                 if (error) {
@@ -83,31 +72,14 @@ class Contact {
                     reject(error)
                 } else {
                     resolve("OK");
-                    this.deleteFile(filePath);
                 }
             });
         })
     }
 
-    deleteFile(filePath) {
-        fs.unlinkSync(filePath);
-        console.log('File deleted successfully:', filePath);
-    }
-
     async renderEmailTemplate(templatePath, data) {
         const template = await fs.promises.readFile(templatePath, 'utf8');
         return ejs.render(template, data);
-    }
-    async downloadFileFromUrl(url, extension) {
-        try {
-            const response = await get(url, { responseType: 'arraybuffer' });
-            const fileName = 'creatoke_' + Date.now() + extension; // Generate a unique file name
-            fs.writeFileSync(fileName, response.data);
-            return fileName;
-        } catch (error) {
-            console.error('Error downloading the file:', error);
-            return null;
-        }
     }
 }
 

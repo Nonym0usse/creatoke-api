@@ -33,9 +33,9 @@ router.get('/getSubCategoryByID/:id', async function (req, res, next) {
     }
 });
 
-router.delete('/delete/:id', verifyTokenMiddleware, async function (req, res, next) {
+router.post('/delete', verifyTokenMiddleware, async function (req, res, next) {
     try {
-        await category.deleteCategory(req.params.id).then((data) => res.status(200).json(data))
+        await category.deleteCategory(req.body).then((data) => res.status(200).json(data))
     } catch (error) {
         res.status(400).json(error.message);
     }
