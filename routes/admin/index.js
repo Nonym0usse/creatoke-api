@@ -30,15 +30,9 @@ router.get('/single-music/:id', async function (req, res, next) {
 });
 
 router.put('/update-music', verifyTokenMiddleware, async function (req, res, next) {
-    const music = new MusicModel(req.body);
     try {
-        const error = await music.validate();
-        if(!error){
-            musicsAdmin.updateMusic(music, req.query.id).then(() => res.status(200).json({"success": "OK"}))
-                .catch((e) => res.status(400).send(e))
-        }else{
-            res.status(400).json(error);
-        }
+        musicsAdmin.updateMusic(req.body).then(() => res.status(200).json({"success": "OK"}))
+            .catch((e) => res.status(400).send(e))
     } catch (error) {
         res.status(400).json(error.message);
     }

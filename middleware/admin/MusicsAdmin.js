@@ -34,9 +34,9 @@ class MusicsAdmin {
         }
     }
 
-    async updateMusic(music, id) {
+    async updateMusic(music) {
         new Promise((resolve, reject) => {
-            this.musicRef.doc(id).update({ ...music }).then(() => resolve('OK')).catch((e) => reject(e));
+            this.musicRef.doc(music.id).update({ ...music }).then(() => resolve('OK')).catch((e) => reject(e));
         })
     }
 
@@ -47,7 +47,9 @@ class MusicsAdmin {
             const nameFields = Object.keys(musicData).filter(key => key.endsWith('_name'));
             const nameFieldValues = nameFields.map(key => musicData[key]);
             nameFieldValues.forEach((field) => {
-                this.bucket.file(`songs/${field}`).delete();
+                if(field !== "" || field !== null){
+                    this.bucket.file(`songs/${field}`).delete();
+                }
             });
             this.musicRef.doc(musicData.id).delete().then(() => resolve('OK')).catch((e) => console.error(e));
         } catch (e) {
