@@ -46,12 +46,14 @@ class MusicsAdmin {
             const musicData = snapshot.data();
             const nameFields = Object.keys(musicData).filter(key => key.endsWith('_name'));
             const nameFieldValues = nameFields.map(key => musicData[key]);
-            nameFieldValues.forEach((field) => {
-                if(field !== "" || field !== null){
-                    this.bucket.file(`songs/${field}`).delete();
-                }
-            });
-            this.musicRef.doc(musicData.id).delete().then(() => resolve('OK')).catch((e) => console.error(e));
+            if(nameFields.length > 0 || nameFieldValues.length > 0){
+                nameFieldValues.forEach((field) => {
+                    if(field !== "" || field !== null){
+                        this.bucket.file(`songs/${field}`).delete();
+                    }
+                });
+            }
+            this.musicRef.doc(id).delete().then(() => console.log('OK')).catch((e) => console.error(e));
         } catch (e) {
             console.log(e)
         }
