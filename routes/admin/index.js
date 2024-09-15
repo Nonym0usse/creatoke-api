@@ -5,7 +5,6 @@ const router = express.Router();
 const verifyTokenMiddleware = require('../../database/auth');
 
 const musicsAdmin = new MusicsAdmin();
-const firebase = require('../../database/firebase');
 
 router.post('/create-music', verifyTokenMiddleware, async function (req, res, next) {
     musicsAdmin.createMusic(req.body).then(() => res.status(200).json({"success": "OK"}))
