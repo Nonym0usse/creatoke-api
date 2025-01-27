@@ -8,14 +8,7 @@ class Payment {
     async createPayment(data) {
         new Promise((resolve, reject) => {
             const contact = new Contact();
-            const parseData = {
-                current_year: data.current_year,
-                current_month: data.current_month,
-                id_song: data.id_song,
-                price: data.price,
-                email: data.email
-            }
-            this.paymentRef.doc().set(parseData).then(() => {
+            this.paymentRef.doc().set(data).then(() => {
                 contact.sendEmailPayment(data).then((resp) => {
                     resolve(resp);
                 });
