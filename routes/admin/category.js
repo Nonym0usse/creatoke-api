@@ -11,7 +11,7 @@ router.get('/getAllCategory', async function (req, res, next) {
         const categories = await category.getAllCategory()
         res.status(200).json(categories);
     } catch (error) {
-        res.status(400).json(error.message);
+         res.status(400).json({ error: e.message })
     }
 });
 
@@ -20,7 +20,7 @@ router.get('/getSubCategory', async function (req, res, next) {
         const categories = await category.getSubCategory()
         res.status(200).json(categories);
     } catch (error) {
-        res.status(400).json(error.message);
+        res.status(400).json({ error: e.message })
     }
 });
 
@@ -29,7 +29,7 @@ router.get('/getSubCategoryByID/:id', async function (req, res, next) {
         const categories = await category.getSubCategoryByID(req.params.id)
         res.status(200).json(categories);
     } catch (error) {
-        res.status(400).json(error.message);
+        res.status(400).json({ error: e.message })
     }
 });
 
@@ -37,18 +37,18 @@ router.post('/delete', verifyTokenMiddleware, async function (req, res, next) {
     try {
         await category.deleteCategory(req.body).then((data) => res.status(200).json(data))
     } catch (error) {
-        res.status(400).json(error.message);
+        res.status(400).json({ error: e.message })
     }
 });
 
 router.post('/create-category', verifyTokenMiddleware, async function (req, res, next) {
-    category.createCategory(req.body).then(() => res.status(200).json({"success": "OK"}))
-        .catch((e) => res.status(400).send(e))
+    category.createCategory(req.body).then(() => res.status(200).json({ "success": "OK" }))
+        .catch((e) => res.status(400).json({ error: e.message }))
 });
 
 router.put('/create-background', verifyTokenMiddleware, async function (req, res, next) {
-    category.createBackground(req.body).then(() => res.status(200).json({"success": "OK"}))
-        .catch((e) => res.status(400).send(e))
+    category.createBackground(req.body).then(() => res.status(200).json({ "success": "OK" }))
+        .catch((e) => res.status(400).json({ error: e.message }))
 });
 
 router.get('/getBackgroundImg', async function (req, res, next) {
@@ -56,13 +56,13 @@ router.get('/getBackgroundImg', async function (req, res, next) {
         const img = await category.getBackgroundImg()
         res.status(200).json(img);
     } catch (error) {
-        res.status(400).json(error.message);
+        res.status(400).json({ error: e.message })
     }
 });
 
 router.put('/modify-text', verifyTokenMiddleware, async function (req, res, next) {
-    category.modifyText(req.body).then(() => res.status(200).json({"success": "OK"}))
-        .catch((e) => res.status(400).send(e))
+    category.modifyText(req.body).then(() => res.status(200).json({ "success": "OK" }))
+        .catch((e) => res.status(400).json({ error: e.message }))
 });
 
 router.get('/getlastText', async function (req, res, next) {
@@ -70,7 +70,7 @@ router.get('/getlastText', async function (req, res, next) {
         const texts = await category.getTexts()
         res.status(200).json(texts);
     } catch (error) {
-        res.status(400).json(error.message);
+        res.status(400).json({ error: e.message })
     }
 });
 

@@ -19,7 +19,7 @@ class MusicsAdmin {
             })
             return data;
         } catch (e) {
-            throw new Error("ERROR_SERVER");
+            return e;
         }
     }
 
@@ -30,7 +30,7 @@ class MusicsAdmin {
             musicData.id = snapshot.id;
             return musicData;
         } catch (e) {
-            console.log(e)
+            return e;
         }
     }
 
@@ -46,16 +46,16 @@ class MusicsAdmin {
             const musicData = snapshot.data();
             const nameFields = Object.keys(musicData).filter(key => key.endsWith('_name'));
             const nameFieldValues = nameFields.map(key => musicData[key]);
-            if(nameFields.length > 0 || nameFieldValues.length > 0){
+            if (nameFields.length > 0 || nameFieldValues.length > 0) {
                 nameFieldValues.forEach((field) => {
-                    if(field !== "" || field !== null){
+                    if (field !== "" || field !== null) {
                         this.bucket.file(`songs/${field}`).delete();
                     }
                 });
             }
-            this.musicRef.doc(id).delete().then(() => console.log('OK')).catch((e) => console.error(e));
+            this.musicRef.doc(id).delete().then(() => { return "ok" });
         } catch (e) {
-            console.log(e)
+            return e;
         }
     }
 
@@ -70,7 +70,7 @@ class MusicsAdmin {
             })
             return data;
         } catch (e) {
-            throw Error(e);
+            return e;
         }
     }
 
@@ -83,7 +83,7 @@ class MusicsAdmin {
             })
             return data;
         } catch (e) {
-
+            return e;
         }
     }
 
@@ -96,7 +96,7 @@ class MusicsAdmin {
             })
             return data;
         } catch (e) {
-            console.log(e)
+            return e;
         }
     }
 
@@ -111,7 +111,7 @@ class MusicsAdmin {
             })
             return data;
         } catch (e) {
-            console.log(e)
+            return e;
         }
     }
 }

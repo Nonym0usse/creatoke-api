@@ -16,7 +16,7 @@ class Comment {
             })
             return data;
         } catch (e) {
-
+            return e;
         }
     }
     async getComments(id){
@@ -28,7 +28,7 @@ class Comment {
             })
             return data;
         } catch (e) {
-            console.log(e)
+            return e;
         }
     }
 

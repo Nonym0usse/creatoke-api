@@ -1,6 +1,6 @@
 const firebase = require('../../database/firebase');
-const {reject} = require("nodemailer/.ncurc");
-const {resolve} = require("@babel/core/lib/vendor/import-meta-resolve");
+const { reject } = require("nodemailer/.ncurc");
+const { resolve } = require("@babel/core/lib/vendor/import-meta-resolve");
 
 class Category {
     categoryRef = firebase.db.collection('category');
@@ -62,20 +62,20 @@ class Category {
         new Promise((resolve, reject) => {
             this.getBackgroundImg().then((background) => {
                 background.forEach((backgroundId) => {
-                    if(backgroundId.id){
+                    if (backgroundId.id) {
                         firebase.db.collection('background').doc(backgroundId.id).delete();
                         this.bucket.file(`background/${backgroundId.picture_name}`).delete();
                     }
                 })
-            }).then(() => firebase.db.collection('background').doc().set({picture: data?.picture, picture_name: data?.picture_name})).finally(() => resolve('OK'))
+            }).then(() => firebase.db.collection('background').doc().set({ picture: data?.picture, picture_name: data?.picture_name })).finally(() => resolve('OK')).catch((e) => reject(e));
         })
     }
 
     async modifyText(text) {
         new Promise((resolve, reject) => {
-            if(text.id === undefined || text.id === ''){
+            if (text.id === undefined || text.id === '') {
                 firebase.db.collection('texts').doc().set(text).then(() => resolve('OK')).catch((e) => reject(e));
-            }else{
+            } else {
                 firebase.db.collection('texts').doc(text.id).update(text).then(() => resolve('OK')).catch((e) => reject(e));
             }
         })
@@ -90,7 +90,7 @@ class Category {
             })
             return data;
         } catch (e) {
-
+            return e;
         }
     }
 
@@ -103,7 +103,7 @@ class Category {
             })
             return data;
         } catch (e) {
-
+            return e;
         }
     }
 }

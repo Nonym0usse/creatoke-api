@@ -1,13 +1,24 @@
 const firebase = require('../../database/firebase');
 const {Contact} = require("./Contact");
+
 class Payment {
+
     paymentRef = firebase.db.collection('selling');
 
     async createPayment(data) {
         new Promise((resolve, reject) => {
             const contact = new Contact();
-            this.paymentRef.doc().set({year: data.current_year, month: data.current_month, id_song: data.id_song, price: data.price}).then(() => {
-                contact.sendEmailPayment(data)
+            const parseData = {
+                current_year: data.current_year,
+                current_month: data.current_month,
+                id_song: data.id_song,
+                price: data.price,
+                email: data.email
+            }
+            this.paymentRef.doc().set(parseData).then(() => {
+                contact.sendEmailPayment(data).then((resp) => {
+                    resolve(resp);
+                });
             }).catch((e) => reject(e));
         })
     }
@@ -22,7 +33,7 @@ class Payment {
             })
             return data;
         } catch (e) {
-
+            return e;
         }
     }
 }

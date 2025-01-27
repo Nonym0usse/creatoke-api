@@ -6,7 +6,7 @@ const contact = new Contact();
 
 router.post('/send-email', async function (req, res, next) {
     contact.sendEmail(req.body).then(() => res.status(200).json({"success": "OK"}))
-    .catch((e) => res.status(400).send(e))
+    .catch((e) => res.status(400).json({error: e.message}))
 });
 
 

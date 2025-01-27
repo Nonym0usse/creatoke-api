@@ -11,7 +11,7 @@ class Licence {
             })
             return data;
         } catch (e) {
-            throw new Error("ERROR_SERVER");
+            return e;
         }
     }
 
