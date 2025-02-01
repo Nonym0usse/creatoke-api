@@ -13,10 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Debug SSH Connection
-        run: |
-          ssh -vvv -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH Connection Successful'"
-
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v0.1.7
         with:
