@@ -13,12 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Deploy to server via SSH
+      - name: Deploy to server via SSH  
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/creatoke-api
+            cd /www/creatoke-api
             git pull origin master
