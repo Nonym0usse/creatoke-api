@@ -1,4 +1,4 @@
-name: Deploy Node.js App
+name: Deploy Creatoke API v1
 
 on:
   push:
@@ -13,21 +13,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup SSH with Passphrase
+      - name: Test Server Connectivity (Ping)
+        run: ping -c 4 ${{ secrets.SERVER_IP }}
+
+      - name: Debug SSH Connection
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-          # Start the SSH agent
-          eval "$(ssh-agent -s)"
-
-          # Add the private key with passphrase
-          ssh-add ~/.ssh/id_rsa <<< "${{ secrets.SSH_PASSPHRASE }}"
+          ssh -vvv -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH Connection Successful'"
 
       - name: Deploy to server via SSH
-        run: |
-          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
-            cd /www/creatoke-api
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22  # Ensure port 22 is correct, change if using a custom port
+          script: |
+            cd /www/creatoke-api || exit 1
             git pull origin master
-          EOF
