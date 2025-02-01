@@ -1,35 +1,24 @@
-name: Deploy Creatoke Api
+name: Deploy Node.js App
 
 on:
   push:
     branches:
-      - main  # Déclenchement sur la branche principale
+      - master
 
 jobs:
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 📥 Cloner le dépôt
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: ⚡ Installer Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '18'
-
-    - name: 📦 Installer les dépendances
-      run: npm install
-
-    - name: 🏗️ Running app...
-      run: npm start
-
-    - name: 🚀 Déployer sur le serveur via SSH
-      uses: appleboy/scp-action@v0.1.1
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        password: ${{ secrets.SERVER_PASSWORD }}
-        port: 22
-        source: "creatoke-api/*"
-        target: "/var/www/html/creatoke-api"
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/creatoke-api
+            git pull origin master
