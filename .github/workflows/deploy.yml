@@ -1,22 +1,24 @@
-name: Deploy creatoke api App
+name: Deploy Creatoke API v1
 
 on:
   push:
     branches:
-      - master  # Déclenche le déploiement lors d'un push sur la branche 'main'
+      - master
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-
-    - name: Deploy to Server
-      run: |
-        ssh vecy3980@109.234.166.20 "
-          cd /www/creatoke-api &&
-          git pull origin master
-        "
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /www/creatoke-api || exit 1
+            git pull origin master
