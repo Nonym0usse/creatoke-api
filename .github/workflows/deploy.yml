@@ -20,5 +20,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /www/creatoke-api || exit 1
+            cd /www/creatoke-api
             git pull origin master
