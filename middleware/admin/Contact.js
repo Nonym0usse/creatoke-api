@@ -49,22 +49,6 @@ class Contact {
         })
     }
 
-    async sendEmailPayment(data) {
-        new Promise(async (resolve, reject) => {
-            const imageBuffer = await fs.promises.readFile('templates/logo.png');
-            data.logo = imageBuffer.toString('base64');
-            const emailHtml = await this.renderEmailTemplate('templates/purchase-confirm.ejs', data);
-            await transporter.sendMail(mailOptions(data.email_client, "Créatoké : Merci pour votre achat.", emailHtml), (error, info) => {
-                if (error) {
-                    console.log(error)
-                    reject(error)
-                } else {
-                    resolve("OK");
-                }
-            });
-        })
-    }
-
     async renderEmailTemplate(templatePath, data) {
         const template = await fs.promises.readFile(templatePath, 'utf8');
         return ejs.render(template, data);

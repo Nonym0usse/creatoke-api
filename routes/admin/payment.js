@@ -6,12 +6,22 @@ const verifyTokenMiddleware = require("../../database/auth");
 const payment = new Payment();
 
 router.post('/create', async function (req, res, next) {
-    payment.createPayment(req.body).then(() => res.status(200).json({ "success": "OK" }))
-        .catch((e) => res.status(400).json({error: e.message}))
+    try {
+        const createPayment = await payment.createPayment(req.body);
+        if (createPayment) {
+            res.status(200).json({ "songUrlDownload": createPayment.songUrlDownload });
+        } else {
+            throw Error("Payment creation failed.")
+        }
+
+    } catch (error) {
+        console.error("Error creating payment:", error);
+        res.status(400).json({ error: error.message || "Payment creation failed" });
+    }
 });
 router.get('/list-sell', verifyTokenMiddleware, async function (req, res, next) {
     payment.getPaymentFromCurrentYear().then((data) => res.status(200).json(data))
-        .catch((e) => res.status(400).json({error: e.message}))
+        .catch((e) => res.status(400).json({ error: e.message }))
 });
 
 
