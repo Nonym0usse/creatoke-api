@@ -26,7 +26,7 @@ router.post('/download', async (req, res) => {
       throw new Error(`Failed to fetch file: ${response.statusText}`);
     }
 
-    const contentType = response?.headers?.get('content-type') || response?.headers?.get('Content-Type') || 'audio/mpeg';
+    const contentType = 'audio/mpeg';
 
     const data = await response.arrayBuffer();
     const buffer = Buffer.from(data);
