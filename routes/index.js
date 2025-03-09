@@ -48,7 +48,7 @@ router.post('/download', async (req, res) => {
     res.send(buffer);
   } catch (error) {
     console.error('Download error:', error);
-    res.status(500).json({ error: 'Error downloading file' });
+    res.status(500).json({ error: error });
   }
 });
 
