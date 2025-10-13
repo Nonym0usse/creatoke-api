@@ -2,7 +2,6 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-const authMiddleware = require('./middleware/auth');
 const cors = require('cors');
 
 var indexRouter = require('./routes/index');
@@ -13,9 +12,9 @@ var licenceRouter = require('./routes/admin/licence');
 var paymentRouter = require('./routes/admin/payment');
 var commentRouter = require('./routes/admin/comment');
 var renewTokenRouter = require('./routes/admin/renew-token');
+var n8nRouter = require('./routes/admin/n8n');
 
 var app = express();
-
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*'); // Adjust for security
@@ -25,10 +24,11 @@ app.use((req, res, next) => {
 });
 
 app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ extended: true, limit: '200mb', parameterLimit: 1000000 }));
 app.use(cookieParser());
 app.use(cors());
+
 
 
 app.use('/', indexRouter);
@@ -39,6 +39,7 @@ app.use('/licence', licenceRouter);
 app.use('/payment', paymentRouter);
 app.use('/comment', commentRouter);
 app.use('/auth', renewTokenRouter);
+app.use('/n8n', n8nRouter);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
