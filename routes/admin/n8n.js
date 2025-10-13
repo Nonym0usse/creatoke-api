@@ -25,7 +25,6 @@ router.post("/api/upload", upload.single("video"), async (req, res) => {
         });
         formData.append("description", req.body.description);
         formData.append("title", req.body.title);
-        formData.append("platform", req.body.platform)
         // Envoyer la vidéo à n8n
         const n8nResponse = await axios.post(
             "https://n8n.creatoke.fr/webhook/dd07341f-2d1b-4621-8795-810a832f1473",
@@ -43,9 +42,9 @@ router.post("/api/upload", upload.single("video"), async (req, res) => {
             if (err) console.error("Erreur suppression fichier :", err);
         });
 
-        return res.status(200).json({
-            status: "success",
-            n8nResponse: n8nResponse.data,
+        return res.status(n8nResponse.status).json({
+            status: n8nResponse.status,
+            n8nResponse: n8nResponse.statusText,
         });
 
     } catch (error) {
