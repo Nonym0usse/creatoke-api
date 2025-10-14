@@ -11,8 +11,6 @@ const FormData = require('form-data');
 
 // ---- Config ----
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
-const N8N_WEBHOOK_URL =
-    process.env.N8N_WEBHOOK_URL || 'https://n8n.creatoke.fr/webhook/dd07341f-2d1b-4621-8795-810a832f1473';
 const BASE_PUBLIC_URL = (process.env.BASE_PUBLIC_URL || '').replace(/\/+$/, ''); // ex: https://api.creatoke.fr
 const KEEP_UPLOADS = process.env.KEEP_UPLOADS === 'true'; // utile en dev
 
@@ -78,7 +76,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         if (publicUrl) formData.append('videoUrl', publicUrl); // utile pour IG Graph
 
         // Pas besoin de Content-Length: Axios/Node gèrent en chunked correctement.
-        const n8nResponse = await axios.post(N8N_WEBHOOK_URL, formData, {
+        const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
           headers: formData.getHeaders(),
           maxBodyLength: Infinity,
           maxContentLength: Infinity,
