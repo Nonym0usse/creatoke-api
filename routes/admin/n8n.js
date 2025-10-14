@@ -102,7 +102,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
 
         return res.status(500).json({
             status: 'error',
-            url: process.env.N8N_WEBHOOK_URL,
+            url: process.env.N8N_WEBHOOK_URL ?? "test",
             message1: error?.response,
             message2: error.message,
         });
