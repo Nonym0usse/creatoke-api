@@ -74,8 +74,15 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         formData.append('description', description);
         if (publicUrl) formData.append('videoUrl', publicUrl); // utile pour IG Graph
 
+        res.send(200).send({
+            url: process.env.N8N_WEBHOOK_URL,
+            file: fileName,
+            videoUrl: publicUrl || null,
+
+        })
+
         // Pas besoin de Content-Length: Axios/Node gèrent en chunked correctement.
-        const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
+        /*const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
           headers: formData.getHeaders(),
           maxBodyLength: Infinity,
           maxContentLength: Infinity,
@@ -92,7 +99,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
           file: fileName,
           videoUrl: publicUrl || null,
           n8n: n8nResponse.data,
-        });
+        });*/
     } catch (error) {
         console.error('Erreur upload → n8n :', error?.response?.data || error.message);
 
