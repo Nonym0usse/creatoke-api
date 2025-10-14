@@ -76,10 +76,10 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
 
         // Pas besoin de Content-Length: Axios/Node gèrent en chunked correctement.
         const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
-          headers: formData.getHeaders(),
-          maxBodyLength: Infinity,
-          maxContentLength: Infinity,
-          timeout: 5 * 60 * 1000,
+            headers: formData.getHeaders(),
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
+            timeout: 5 * 60 * 1000,
         });
 
         // Nettoyage (sauf si KEEP_UPLOADS=true)
@@ -88,10 +88,10 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         }
 
         return res.status(n8nResponse.status).json({
-          status: 'ok',
-          file: fileName,
-          videoUrl: publicUrl || null,
-          n8n: n8nResponse.data,
+            status: 'ok',
+            file: fileName,
+            videoUrl: publicUrl || null,
+            n8n: n8nResponse.data,
         });
     } catch (error) {
         console.error('Erreur upload → n8n :', error?.response?.data || error.message);
@@ -102,9 +102,9 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
 
         return res.status(500).json({
             status: 'error',
-            message1: error?.response?.data,
+            url: process.env.N8N_WEBHOOK_URL,
+            message1: error?.response,
             message2: error.message,
-            url: process.env.N8N_WEBHOOK_URL
         });
     }
 });
