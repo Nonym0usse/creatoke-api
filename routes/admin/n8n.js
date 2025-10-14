@@ -100,10 +100,11 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
             //fsp.unlink(filePath).catch((e) => console.error('Erreur suppression fichier :', e));
         }
 
-        const status = error?.response?.status || 500;
-        return res.status(status).json({
-            status: 'errorsss',
-            message: error?.response?.data || error.message || 'Échec envoi n8n',
+        return res.status(500).json({
+            status: 'error',
+            message1: error?.response?.data,
+            message2: error.message,
+            url: process.env.N8N_WEBHOOK_URL
         });
     }
 });
@@ -124,7 +125,7 @@ router.use((err, _req, res, _next) => {
     if (err && /Type de fichier non supporté/.test(err.message)) {
         return res.status(400).json({ status: 'error', message: err.message });
     }
-    return res.status(500).json({ status: 'errorooooo', message: err?.message || 'Erreur serveur' });
+    return res.status(500).json({ status: 'error', message: err?.message || 'Erreur serveur' });
 });
 
 module.exports = router;
