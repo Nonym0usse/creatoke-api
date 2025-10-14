@@ -52,7 +52,7 @@ function buildPublicUrl(req, filename) {
     return `${proto}://${host.replace(/\/+$/, '')}/uploads/${encodeURIComponent(filename)}`;
 }
 
-router.post('/api/uploads', upload.single('video'), async (req, res) => {
+router.post('/api/upload', upload.single('video'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ status: 'error', message: 'Aucun fichier fourni' });
     }
