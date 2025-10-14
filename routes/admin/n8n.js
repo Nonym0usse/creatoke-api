@@ -103,7 +103,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         const status = error?.response?.status || 500;
         return res.status(status).json({
             status: 'error',
-            message: error?.response?.data || error.message || 'Échec envoi n8n',
+            message: 'Échec envoi n8n',
         });
     }
 });
