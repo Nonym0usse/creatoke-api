@@ -57,6 +57,19 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         return res.status(400).json({ status: 'error', message: 'Aucun fichier fourni' });
     }
 
+    if (!BASE_PUBLIC_URL) {
+        return res.status(500).json({
+            status: 'error',
+            message: 'N8N_WEBHOOK_URL non configurée en environnement (prod).',
+        });
+    }
+    if (!/^https?:\/\//i.test(BASE_PUBLIC_URL)) {
+        return res.status(500).json({
+            status: 'error',
+            message: 'N8N_WEBHOOK_URL invalide (doit commencer par http(s)://).',
+        });
+    }
+
     const filePath = req.file.path;
     const fileName = req.file.filename;
     const publicUrl = buildPublicUrl(req, fileName);
