@@ -29,6 +29,9 @@ app.use(express.urlencoded({ extended: true, limit: '200mb', parameterLimit: 100
 app.use(cookieParser());
 app.use(cors());
 
+app.set('trust proxy', true); // important derrière nginx/traefik
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), { maxAge: '7d' }));
+
 
 
 app.use('/', indexRouter);
