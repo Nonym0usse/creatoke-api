@@ -12,7 +12,6 @@ const FormData = require('form-data');
 // ---- Config ----
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 const BASE_PUBLIC_URL = (process.env.BASE_PUBLIC_URL || '').replace(/\/+$/, ''); // ex: https://api.creatoke.fr
-const KEEP_UPLOADS = process.env.KEEP_UPLOADS === 'true'; // utile en dev
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // Multer: disque + nom unique + filtre vidéo
@@ -76,35 +75,25 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
 
         // Pas besoin de Content-Length: Axios/Node gèrent en chunked correctement.
         const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
-            headers: formData.getHeaders(),
-            maxBodyLength: Infinity,
-            maxContentLength: Infinity,
-            timeout: 5 * 60 * 1000,
+          headers: formData.getHeaders(),
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          timeout: 5 * 60 * 1000,
         });
 
-        // Nettoyage (sauf si KEEP_UPLOADS=true)
-        if (!KEEP_UPLOADS) {
-            //(filePath).catch((e) => console.error('Erreur suppression fichier :', e));
-        }
-
         return res.status(n8nResponse.status).json({
-            status: 'ok',
-            file: fileName,
-            videoUrl: publicUrl || null,
-            n8n: n8nResponse.data,
+          status: 'ok',
+          file: fileName,
+          videoUrl: publicUrl || null,
+          n8n: n8nResponse.data,
         });
     } catch (error) {
         console.error('Erreur upload → n8n :', error?.response?.data || error.message);
 
-        if (!KEEP_UPLOADS) {
-            //fsp.unlink(filePath).catch((e) => console.error('Erreur suppression fichier :', e));
-        }
-
-        return res.status(500).json({
+        const status = error?.response?.status || 500;
+        return res.status(status).json({
             status: 'error',
-            url: process.env.N8N_WEBHOOK_URL ?? "test",
-            message1: error?.response,
-            message2: error.message,
+            message: error?.response?.data || error.message || 'Échec envoi n8n',
         });
     }
 });

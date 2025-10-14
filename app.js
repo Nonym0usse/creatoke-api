@@ -13,9 +13,10 @@ var paymentRouter = require('./routes/admin/payment');
 var commentRouter = require('./routes/admin/comment');
 var renewTokenRouter = require('./routes/admin/renew-token');
 var n8nRouter = require('./routes/admin/n8n');
-require('dotenv').config();
-
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 var app = express();
+
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*'); // Adjust for security
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
