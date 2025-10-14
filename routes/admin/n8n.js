@@ -52,8 +52,60 @@ function buildPublicUrl(req, filename) {
     return `${proto}://${host.replace(/\/+$/, '')}/uploads/${encodeURIComponent(filename)}`;
 }
 
-router.post('/api/upload', upload.single('video'), async (req, res) => {
-    res.status(200).send('kokookok')
+router.post('/api/uploads', upload.single('video'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ status: 'error', message: 'Aucun fichier fourni' });
+    }
+
+    const filePath = req.file.path;
+    const fileName = req.file.filename;
+    const publicUrl = buildPublicUrl(req, fileName);
+    const title = (req.body && req.body.title) || '';
+    const description = (req.body && req.body.description) || '';
+
+    try {
+        // FormData binaire → n8n
+        const formData = new FormData();
+        formData.append('video', fs.createReadStream(filePath), {
+            filename: req.file.originalname || fileName,
+            contentType: req.file.mimetype || 'video/mp4',
+        });
+        formData.append('title', title);
+        formData.append('description', description);
+        if (publicUrl) formData.append('videoUrl', publicUrl); // utile pour IG Graph
+
+        // Pas besoin de Content-Length: Axios/Node gèrent en chunked correctement.
+        const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
+          headers: formData.getHeaders(),
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          timeout: 5 * 60 * 1000,
+        });
+
+        // Nettoyage (sauf si KEEP_UPLOADS=true)
+        if (!KEEP_UPLOADS) {
+            //(filePath).catch((e) => console.error('Erreur suppression fichier :', e));
+        }
+
+        return res.status(n8nResponse.status).json({
+          status: 'ok',
+          file: fileName,
+          videoUrl: publicUrl || null,
+          n8n: n8nResponse.data,
+        });
+    } catch (error) {
+        console.error('Erreur upload → n8n :', error?.response?.data || error.message);
+
+        if (!KEEP_UPLOADS) {
+            //fsp.unlink(filePath).catch((e) => console.error('Erreur suppression fichier :', e));
+        }
+
+        const status = error?.response?.status || 500;
+        return res.status(status).json({
+            status: 'error',
+            message: error?.response?.data || error.message || 'Échec envoi n8n',
+        });
+    }
 });
 
 router.post('/api/test', (req, res) => {
