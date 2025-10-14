@@ -108,7 +108,7 @@ function buildPublicUrl(req, filename) {
     }
 });*/
 
-router.post('/api/upload', upload.single('video'), async (req, res) => {
+router.post('/api/upload', (req, res) => {
   console.log('[upload] hit', new Date().toISOString());
   return res.status(200).json({ status: 'ok' });
 });
