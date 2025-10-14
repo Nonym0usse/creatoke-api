@@ -108,6 +108,11 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
     }
 });
 
+router.post('/api/test', (req, res) => {
+    res.send(200).send('OK')
+
+});
+
 // ✅ Middleware d’erreurs Multer (pour tailles, type, etc.)
 router.use((err, _req, res, _next) => {
     if (err instanceof multer.MulterError) {
