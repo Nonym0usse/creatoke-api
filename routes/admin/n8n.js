@@ -108,7 +108,7 @@ function buildPublicUrl(req, filename) {
     }
 });*/
 
-router.post('/api/upload', (req, res) => {
+router.post('/api/upload', upload.single('video'), async (req, res) => {
   console.log('[upload] hit', new Date().toISOString());
   return res.status(200).json({ status: 'ok' });
 });
@@ -119,5 +119,17 @@ router.post('/api/test', (req, res) => {
 });
 
 // ✅ Middleware d’erreurs Multer (pour tailles, type, etc.)
+router.use((err, _req, res, _next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({ status: 'error', message: 'Fichier trop volumineux' });
+        }
+        return res.status(400).json({ status: 'error', message: `Erreur upload: ${err.code}` });
+    }
+    if (err && /Type de fichier non supporté/.test(err.message)) {
+        return res.status(400).json({ status: 'error', message: err.message });
+    }
+    return res.status(500).json({ status: 'error', message: err?.message || 'Erreur serveur' });
+});
 
 module.exports = router;
