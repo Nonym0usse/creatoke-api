@@ -13,7 +13,7 @@ var paymentRouter = require('./routes/admin/payment');
 var commentRouter = require('./routes/admin/comment');
 var renewTokenRouter = require('./routes/admin/renew-token');
 var n8nRouter = require('./routes/admin/n8n');
-require('dotenv').config();
+//require('dotenv').config();
 
 var app = express();
 app.use((req, res, next) => {
@@ -29,8 +29,8 @@ app.use(express.urlencoded({ extended: true, limit: '200mb', parameterLimit: 100
 app.use(cookieParser());
 app.use(cors());
 
-app.set('trust proxy', true); // important derrière nginx/traefik
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), { maxAge: '7d' }));
+//app.set('trust proxy', true); // important derrière nginx/traefik
+//app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), { maxAge: '7d' }));
 
 
 
