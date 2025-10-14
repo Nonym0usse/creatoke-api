@@ -52,7 +52,7 @@ function buildPublicUrl(req, filename) {
     return `${proto}://${host.replace(/\/+$/, '')}/uploads/${encodeURIComponent(filename)}`;
 }
 
-/*router.post('/api/upload', upload.single('video'), async (req, res) => {
+router.post('/api/upload', upload.single('video'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ status: 'error', message: 'Aucun fichier fourni' });
     }
@@ -106,11 +106,6 @@ function buildPublicUrl(req, filename) {
             message: error?.response?.data || error.message || 'Échec envoi n8n',
         });
     }
-});*/
-
-router.post('/api/upload', upload.single('video'), async (req, res) => {
-  console.log('[upload] hit', new Date().toISOString());
-  return res.status(200).json({ status: 'ok' });
 });
 
 router.post('/api/test', (req, res) => {
