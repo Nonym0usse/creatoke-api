@@ -103,7 +103,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         const status = error?.response?.status || 500;
         return res.status(status).json({
             status: 'error',
-            message: 'Échec envoi n8n',
+            message: error?.response?.data || error.message || 'Échec envoi n8n',
         });
     }
 });
@@ -119,7 +119,7 @@ router.use((err, _req, res, _next) => {
     if (err && /Type de fichier non supporté/.test(err.message)) {
         return res.status(400).json({ status: 'error', message: err.message });
     }
-    return res.status(500).json({ status: 'error', message: err?.message || 'Erreur serveur' });
+    return res.status(500).json({ status: 'error', message: 'Erreur serveur' });
 });
 
 module.exports = router;
