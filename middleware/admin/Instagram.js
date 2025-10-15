@@ -37,9 +37,9 @@ class Instagram {
         } catch (error) {
             logger.error({
                 msg: 'Axios error',
-                status: err.response?.status,
-                data: err.response?.data,
-                code: err.code,
+                status: error.response?.status,
+                data: error.response?.data,
+                code: error.code,
             });
         }
     }
@@ -77,9 +77,9 @@ class Instagram {
             } catch (error) {
                 logger.error({
                     msg: 'Axios error',
-                    status: err.response?.status,
-                    data: err.response?.data,
-                    code: err.code,
+                    status: error.response?.status,
+                    data: error.response?.data,
+                    code: error.code,
                 });
             }
         }
@@ -102,9 +102,9 @@ class Instagram {
         } catch (error) {
             logger.error({
                 msg: 'Axios error',
-                status: err.response?.status,
-                data: err.response?.data,
-                code: err.code,
+                status: error.response?.status,
+                data: error.response?.data,
+                code: error.code,
             });
         }
     }
