@@ -1,10 +1,12 @@
 const pino = require('pino');
 const path = require('path');
+const os = require('os');
 
-// Log file dans ton dossier /logs de cPanel (écriture autorisée)
-const logFilePath = path.join(process.env.HOME || __dirname, 'logs', 'app.log');
+const baseLogsDir = process.env.CPANEL_LOG_DIR 
+  || path.join(os.homedir() || __dirname, 'logs');
 
-// Destination du log : fichier + stdout
+const logFilePath = path.join(baseLogsDir, 'app.log');
+
 const transport = pino.transport({
   targets: [
     { target: 'pino/file', options: { destination: logFilePath, mkdir: true } },
