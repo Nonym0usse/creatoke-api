@@ -71,7 +71,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         const formData = new FormData();
 
         const getBlueSkyAuth = await blueSky.loginOnBlueSky();
-        if (publicUrl) await ig.publishReel(description, publicUrl);
+        //if (publicUrl) await ig.publishReel(description, publicUrl);
 
         formData.append('video', fs.createReadStream(filePath), {
             filename: req.file.originalname || fileName,
