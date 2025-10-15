@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "nodemon app.js",
-    "prod": "pm2 start app.js --name creatoke-api"
+    "prod": "node app.js"
   },
   "dependencies": {
     "@babel/core": "^7.21.4",
