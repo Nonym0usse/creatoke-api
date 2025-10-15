@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "nodemon app.js",
+    "prod": "pm2 start app.js --name creatoke-api"
   },
   "dependencies": {
     "@babel/core": "^7.21.4",
@@ -31,6 +32,7 @@
     "paypal-rest-sdk": "^1.8.1",
     "pino": "^10.0.0",
     "pino-pretty": "^13.1.2",
+    "pm2": "^6.0.13",
     "querystring": "^0.2.1",
     "validator": "^13.9.0"
   },
