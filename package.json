@@ -29,6 +29,7 @@
     "multer": "^2.0.2",
     "nodemailer": "^6.9.4",
     "paypal-rest-sdk": "^1.8.1",
+    "pino": "^10.0.0",
     "querystring": "^0.2.1",
     "validator": "^13.9.0"
   },

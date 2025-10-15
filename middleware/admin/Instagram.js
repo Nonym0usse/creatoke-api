@@ -1,4 +1,5 @@
 const axios = require('axios');
+const logger = require('../../routes/admin/logger');
 
 class Instagram {
     constructor({
@@ -34,18 +35,12 @@ class Instagram {
             );
             return data.id; // container_id
         } catch (error) {
-            const payload = error?.response?.data;
-            console.error('IG /media error:', {
-                status: error?.response?.status,
-                data: payload,
+            logger.error({
+                msg: 'Axios error',
+                status: err.response?.status,
+                data: err.response?.data,
+                code: err.code,
             });
-            const e = new Error(
-                payload?.error?.message || error.message || 'Failed to create IG container'
-            );
-            e.status = error?.response?.status || 500;
-            e.code = payload?.error?.code;
-            e.subcode = payload?.error?.error_subcode;
-            throw e;
         }
     }
 
@@ -80,11 +75,12 @@ class Instagram {
 
                 await new Promise(r => setTimeout(r, intervalMs));
             } catch (error) {
-                // remonte les erreurs réseau proprement
-                console.log(error)
-                const msg = error?.response?.data?.error?.message || error.message || 'Failed while polling container';
-                const status = error?.status || error?.response?.status || 500;
-                const e = new Error(msg); e.status = status; throw e;
+                logger.error({
+                    msg: 'Axios error',
+                    status: err.response?.status,
+                    data: err.response?.data,
+                    code: err.code,
+                });
             }
         }
     }
@@ -104,9 +100,12 @@ class Instagram {
             );
             return data.id; // media_id
         } catch (error) {
-            const msg = error?.response?.data?.error?.message || error.message || 'Failed to publish IG media';
-            const status = error?.response?.status || 500;
-            const e = new Error(msg); e.status = status; throw e;
+            logger.error({
+                msg: 'Axios error',
+                status: err.response?.status,
+                data: err.response?.data,
+                code: err.code,
+            });
         }
     }
 
