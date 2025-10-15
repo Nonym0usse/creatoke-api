@@ -1,5 +1,4 @@
 const axios = require('axios');
-const logger = require('../../routes/admin/logger');
 
 class Instagram {
     constructor({
@@ -35,12 +34,18 @@ class Instagram {
             );
             return data.id; // container_id
         } catch (error) {
-            logger.error({
-                msg: 'Axios error',
-                status: error.response?.status,
-                data: error.response?.data,
-                code: error.code,
+            const payload = error?.response?.data;
+            console.error('IG /media error:', {
+                status: error?.response?.status,
+                data: payload,
             });
+            const e = new Error(
+                payload?.error?.message || error.message || 'Failed to create IG container'
+            );
+            e.status = error?.response?.status || 500;
+            e.code = payload?.error?.code;
+            e.subcode = payload?.error?.error_subcode;
+            throw e;
         }
     }
 
@@ -75,12 +80,10 @@ class Instagram {
 
                 await new Promise(r => setTimeout(r, intervalMs));
             } catch (error) {
-                logger.error({
-                    msg: 'Axios error',
-                    status: error.response?.status,
-                    data: error.response?.data,
-                    code: error.code,
-                });
+                // remonte les erreurs réseau proprement
+                const msg = error?.response?.data?.error?.message || error.message || 'Failed while polling container';
+                const status = error?.status || error?.response?.status || 500;
+                const e = new Error(msg); e.status = status; throw e;
             }
         }
     }
@@ -100,12 +103,9 @@ class Instagram {
             );
             return data.id; // media_id
         } catch (error) {
-            logger.error({
-                msg: 'Axios error',
-                status: error.response?.status,
-                data: error.response?.data,
-                code: error.code,
-            });
+            const msg = error?.response?.data?.error?.message || error.message || 'Failed to publish IG media';
+            const status = error?.response?.status || 500;
+            const e = new Error(msg); e.status = status; throw e;
         }
     }
 

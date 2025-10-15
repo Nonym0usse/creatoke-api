@@ -12,7 +12,6 @@ var paymentRouter = require('./routes/admin/payment');
 var commentRouter = require('./routes/admin/comment');
 var renewTokenRouter = require('./routes/admin/renew-token');
 var n8nRouter = require('./routes/admin/n8n');
-const logger = require('./routes/admin/logger');
 require('dotenv').config();
 
 var app = express();
@@ -22,10 +21,7 @@ app.use((req, res, next) => {
   res.header('Access-Control-Expose-Headers', 'Content-Type'); // Ensure headers are visible
   next();
 });
-app.use((req, res, next) => {
-  logger.info({ method: req.method, url: req.url, ip: req.ip }, 'Incoming request');
-  next();
-});
+
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb', parameterLimit: 1000000 }));
 app.use(cookieParser());
