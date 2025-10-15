@@ -80,6 +80,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         formData.append('title', title);
         formData.append('description', description);
         formData.append('blueSkyJwt', getBlueSkyAuth);
+        formData.append('videoUrl', publicUrl)
 
         const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
             headers: formData.getHeaders(),
