@@ -71,7 +71,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         const formData = new FormData();
 
         const getBlueSkyAuth = await blueSky.loginOnBlueSky();
-        //if (publicUrl) await ig.publishReel(description, publicUrl);
+        if (publicUrl) await ig.publishReel(description, publicUrl);
 
         formData.append('video', fs.createReadStream(filePath), {
             filename: req.file.originalname || fileName,
@@ -80,7 +80,6 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         formData.append('title', title);
         formData.append('description', description);
         formData.append('blueSkyJwt', getBlueSkyAuth);
-        formData.append('public_url', publicUrl)
 
         const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
             headers: formData.getHeaders(),
