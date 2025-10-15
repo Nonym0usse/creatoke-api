@@ -64,6 +64,16 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
     const title = (req.body && req.body.title) || '';
     const description = (req.body && req.body.description) || '';
 
+    if (!publicUrl) {
+        // Instagram exige une URL publique accessible
+        return res.status(500).json({
+            status: 'error',
+            message: 'BASE_PUBLIC_URL manquant ou impossible de construire l’URL publique.',
+        });
+    }
+
+    let igPublished = false;
+
     try {
         // FormData binaire → n8n
         const blueSky = new Bluesky();
@@ -72,6 +82,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
 
         const getBlueSkyAuth = await blueSky.loginOnBlueSky();
         await ig.publishReel(description, publicUrl);
+        igPublished = true;
 
         formData.append('video', fs.createReadStream(filePath), {
             filename: req.file.originalname || fileName,
@@ -101,6 +112,10 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
             status: 'error',
             message: error?.response?.data || error.message || 'Échec envoi n8n',
         });
+    } finally {
+        if (igPublished) {
+            fsp.unlink(filePath).catch((e) => console.error('Suppression fichier échouée :', e));
+        }
     }
 });
 
