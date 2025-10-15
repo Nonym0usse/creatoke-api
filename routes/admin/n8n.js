@@ -95,7 +95,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
             n8n: n8nResponse.data,
         });
     } catch (error) {
-        console.error('Erreur upload → n8n :', error?.response?.data || error.message);
+        console.error('Erreur upload → n8n :', error);
 
         const status = error?.response?.status || 500;
         return res.status(status).json({

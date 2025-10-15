@@ -2,7 +2,7 @@ const axios = require('axios');
 
 class Instagram {
     constructor({
-        accessToken = process.env.FB_ACCESS_TOKEN,              // ⚠️ utilise bien le PAGE ACCESS TOKEN
+        accessToken = process.env.FB_ACCESS_TOKEN,
         igUserId = process.env.IG_USER_ID,
         graphVersion = 'v23.0',
     } = {}) {
@@ -28,11 +28,11 @@ class Instagram {
                         caption: description,
                         media_type: 'REELS',
                         video_url: videoUrl,
-                        access_token: this.accessToken, // PAGE ACCESS TOKEN de la page liée à IG
-                        // ❌ surtout pas de "published" ici
+                        access_token: this.accessToken,
                     },
                 }
             );
+            console.log(data)
             return data.id; // container_id
         } catch (error) {
             const payload = error?.response?.data;
@@ -56,7 +56,7 @@ class Instagram {
         while (true) {
             try {
                 const { data } = await this.http.get(
-                    `${this.graphBase}/${containerId}`,
+                    `${this.graph}/${containerId}`,
                     {
                         params: {
                             access_token: this.accessToken,
@@ -64,6 +64,8 @@ class Instagram {
                         },
                     }
                 );
+
+                console.log("okokokko", data)
 
                 const code = data?.status_code; // IN_PROGRESS | FINISHED | ERROR | EXPIRED
                 if (code === 'FINISHED') return data;
@@ -81,6 +83,7 @@ class Instagram {
                 await new Promise(r => setTimeout(r, intervalMs));
             } catch (error) {
                 // remonte les erreurs réseau proprement
+                console.log(error)
                 const msg = error?.response?.data?.error?.message || error.message || 'Failed while polling container';
                 const status = error?.status || error?.response?.status || 500;
                 const e = new Error(msg); e.status = status; throw e;
@@ -92,7 +95,7 @@ class Instagram {
     async publishContainer({ containerId }) {
         try {
             const { data } = await this.http.post(
-                `${this.graphBase}/${this.igUserId}/media_publish`,
+                `${this.graph}/${this.igUserId}/media_publish`,
                 null,
                 {
                     params: {
