@@ -8,6 +8,8 @@ const path = require('path');
 const crypto = require('crypto');
 const axios = require('axios');
 const FormData = require('form-data');
+const { Bluesky } = require('../../middleware/admin/BlueSky');
+const { Instagram } = require('../../middleware/admin/Instagram');
 
 // ---- Config ----
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
@@ -64,28 +66,33 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
 
     try {
         // FormData binaire → n8n
+        const blueSky = new Bluesky();
+        const ig = new Instagram();
         const formData = new FormData();
+
+        const getBlueSkyAuth = await blueSky.loginOnBlueSky();
+        if (publicUrl) await ig.publishReel(description, publicUrl);
+
         formData.append('video', fs.createReadStream(filePath), {
             filename: req.file.originalname || fileName,
             contentType: req.file.mimetype || 'video/mp4',
         });
         formData.append('title', title);
         formData.append('description', description);
-        if (publicUrl) formData.append('videoUrl', publicUrl); // utile pour IG Graph
+        formData.append('blueSkyJwt', getBlueSkyAuth);
 
-        // Pas besoin de Content-Length: Axios/Node gèrent en chunked correctement.
         const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
-          headers: formData.getHeaders(),
-          maxBodyLength: Infinity,
-          maxContentLength: Infinity,
-          timeout: 5 * 60 * 1000,
+            headers: formData.getHeaders(),
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
+            timeout: 5 * 60 * 1000,
         });
 
         return res.status(n8nResponse.status).json({
-          status: 'ok',
-          file: fileName,
-          videoUrl: publicUrl || null,
-          n8n: n8nResponse.data,
+            status: 'ok',
+            file: fileName,
+            videoUrl: publicUrl || null,
+            n8n: n8nResponse.data,
         });
     } catch (error) {
         console.error('Erreur upload → n8n :', error?.response?.data || error.message);
@@ -96,11 +103,6 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
             message: error?.response?.data || error.message || 'Échec envoi n8n',
         });
     }
-});
-
-router.post('/api/test', (req, res) => {
-    res.send(200).send('OK')
-
 });
 
 // ✅ Middleware d’erreurs Multer (pour tailles, type, etc.)
