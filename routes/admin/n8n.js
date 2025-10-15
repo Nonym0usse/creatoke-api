@@ -80,6 +80,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         formData.append('title', title);
         formData.append('description', description);
         formData.append('blueSkyJwt', getBlueSkyAuth);
+        formData.append('public_url', publicUrl)
 
         const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
             headers: formData.getHeaders(),
@@ -95,8 +96,6 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
             n8n: n8nResponse.data,
         });
     } catch (error) {
-        console.error('Erreur upload → n8n :', error);
-
         const status = error?.response?.status || 500;
         return res.status(status).json({
             status: 'error',

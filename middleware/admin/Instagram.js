@@ -32,7 +32,6 @@ class Instagram {
                     },
                 }
             );
-            console.log(data)
             return data.id; // container_id
         } catch (error) {
             const payload = error?.response?.data;
@@ -65,7 +64,6 @@ class Instagram {
                     }
                 );
 
-                console.log("okokokko", data)
 
                 const code = data?.status_code; // IN_PROGRESS | FINISHED | ERROR | EXPIRED
                 if (code === 'FINISHED') return data;
