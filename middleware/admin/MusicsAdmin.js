@@ -63,8 +63,10 @@ class MusicsAdmin {
         try {
             const data = [];
             //const snapshot = await this.musicRef.orderBy('created_at').get();
-            const snapshot = await this.musicRef.where("isHeartStroke", "==", "oui").get();
-
+            const snapshot = await this.musicRef
+                .where("isHeartStroke", "==", "oui")
+                .orderBy("created_at", "desc")
+                .get();
             snapshot.docs.map(function (map) {
                 data.push({ id: map.id, ...map.data() })
             })
