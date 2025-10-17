@@ -39,6 +39,12 @@ const upload = multer({
     limits: { fileSize: 512 * 1024 * 1024 }, // 512 Mo
 });
 
+function truncateText(text, max = 280) {
+  if (!text) return '';
+  // découpe Unicode-safe
+  return Array.from(text).slice(0, max).join('');
+}
+
 // URL publique robuste
 function buildPublicUrl(req, filename) {
     if (BASE_PUBLIC_URL) {
@@ -62,7 +68,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
     const fileName = req.file.filename;
     const publicUrl = buildPublicUrl(req, fileName);
     const title = (req.body && req.body.title) || '';
-    const description = (req.body && req.body.description) || '';
+    const description = truncateText((req.body && req.body.description)) || '';
 
     if (!publicUrl) {
         // Instagram exige une URL publique accessible
