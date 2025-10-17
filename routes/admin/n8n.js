@@ -40,9 +40,9 @@ const upload = multer({
 });
 
 function truncateText(text, max = 280) {
-  if (!text) return '';
-  // découpe Unicode-safe
-  return Array.from(text).slice(0, max).join('');
+    if (!text) return '';
+    // découpe Unicode-safe
+    return Array.from(text).slice(0, max).join('');
 }
 
 // URL publique robuste
@@ -68,7 +68,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
     const fileName = req.file.filename;
     const publicUrl = buildPublicUrl(req, fileName);
     const title = (req.body && req.body.title) || '';
-    const description = truncateText((req.body && req.body.description)) || '';
+    const description = truncateText(req.body?.description, 280);
 
     if (!publicUrl) {
         // Instagram exige une URL publique accessible
@@ -119,9 +119,7 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
             message: error?.response?.data || error.message || 'Échec envoi n8n',
         });
     } finally {
-        if (igPublished) {
-            fsp.unlink(filePath).catch((e) => console.error('Suppression fichier échouée :', e));
-        }
+        fsp.unlink(filePath).catch((e) => console.error('Suppression fichier échouée :', e));
     }
 });
 
