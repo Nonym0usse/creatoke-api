@@ -10,6 +10,7 @@ const axios = require('axios');
 const FormData = require('form-data');
 const { Bluesky } = require('../../middleware/admin/BlueSky');
 const { Instagram } = require('../../middleware/admin/Instagram');
+const { videoCompress } = require("../../utils/videoCompress");
 
 // ---- Config ----
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
@@ -64,31 +65,35 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         return res.status(400).json({ status: 'error', message: 'Aucun fichier fourni' });
     }
 
-    const filePath = req.file.path;
-    const fileName = req.file.filename;
-    const publicUrl = buildPublicUrl(req, fileName);
-    const title = (req.body && req.body.title) || '';
-    const description = truncateText(req.body?.description, 280);
-
-    if (!publicUrl) {
-        // Instagram exige une URL publique accessible
-        return res.status(500).json({
-            status: 'error',
-            message: 'BASE_PUBLIC_URL manquant ou impossible de construire l’URL publique.',
-        });
-    }
-
-    let igPublished = false;
+    let filePath = req.file.path;
+    let fileName = req.file.filename;
 
     try {
-        // FormData binaire → n8n
+        const compressedName = fileName.replace(/(\.[^.]+)$/, '_compressed$1');
+        const compressedPath = path.join(UPLOAD_DIR, compressedName);
+
+        await videoCompress(filePath, compressedPath);
+        await fsp.unlink(filePath).catch(() => { });
+        filePath = compressedPath;
+        fileName = compressedName;
+
+        const publicUrl = buildPublicUrl(req, fileName);
+        const title = (req.body && req.body.title) || '';
+        const description = truncateText(req.body?.description, 280);
+
+        if (!publicUrl) {
+            return res.status(500).json({
+                status: 'error',
+                message: 'Impossible de construire l’URL publique.',
+            });
+        }
+
         const blueSky = new Bluesky();
         const ig = new Instagram();
         const formData = new FormData();
 
-        const getBlueSkyAuth = await blueSky.loginOnBlueSky();
+        const blueSkyJwt = await blueSky.loginOnBlueSky();
         await ig.publishReel(description, publicUrl);
-        igPublished = true;
 
         formData.append('video', fs.createReadStream(filePath), {
             filename: req.file.originalname || fileName,
@@ -96,8 +101,8 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
         });
         formData.append('title', title);
         formData.append('description', description);
-        formData.append('blueSkyJwt', getBlueSkyAuth);
-        formData.append('videoUrl', publicUrl)
+        formData.append('blueSkyJwt', blueSkyJwt);
+        formData.append('videoUrl', publicUrl);
 
         const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, formData, {
             headers: formData.getHeaders(),
@@ -106,10 +111,10 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
             timeout: 5 * 60 * 1000,
         });
 
-        return res.status(n8nResponse.status).json({
+        return res.status(200).json({
             status: 'ok',
             file: fileName,
-            videoUrl: publicUrl || null,
+            videoUrl: publicUrl,
             n8n: n8nResponse.data,
         });
     } catch (error) {
@@ -118,8 +123,6 @@ router.post('/api/upload', upload.single('video'), async (req, res) => {
             status: 'error',
             message: error?.response?.data || error.message || 'Échec envoi n8n',
         });
-    } finally {
-        fsp.unlink(filePath).catch((e) => console.error('Suppression fichier échouée :', e));
     }
 });
 
