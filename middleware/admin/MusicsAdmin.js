@@ -23,12 +23,12 @@ class MusicsAdmin {
         }
     }
 
-    async singleMusic(id) {
+    async singleMusic(slug) {
         try {
-            const snapshot = await this.musicRef.doc(id).get();
-            const musicData = snapshot.data();
-            musicData.id = snapshot.id;
-            return musicData;
+            const snap = await this.musicRef.where("slug", "==", slug).limit(1).get();
+            if (snap.empty) return null;
+            const doc = snap.docs[0];
+            return { id: doc.id, ...doc.data() };
         } catch (e) {
             return e;
         }
@@ -62,7 +62,6 @@ class MusicsAdmin {
     async highlightMusic() {
         try {
             const data = [];
-            //const snapshot = await this.musicRef.orderBy('created_at').get();
             const snapshot = await this.musicRef
                 .where("isHeartStroke", "==", "oui")
                 .orderBy("created_at", "desc")
@@ -79,7 +78,7 @@ class MusicsAdmin {
     async getSongByCategory(params) {
         try {
             const data = [];
-            const snapshot = await this.musicRef.where("category", "==", params?.category.toString()).where("subcategory", "==", params?.subcategory.toString()).get()
+            const snapshot = await this.musicRef.where("category", "==", params?.category.toString()).get()
             snapshot.docs.map(function (map) {
                 data.push({ id: map.id, ...map.data() })
             })

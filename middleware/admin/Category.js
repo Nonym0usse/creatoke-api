@@ -18,32 +18,6 @@ class Category {
         }
     }
 
-    async getSubCategory(id) {
-        try {
-            const data = [];
-            const snapshot = await this.categoryRef.get();
-            snapshot.docs.map(function (map) {
-                data.push({ id: map.id, ...map.data() })
-            })
-            return data;
-        } catch (e) {
-
-        }
-    }
-
-    async getSubCategoryByID(id) {
-        try {
-            const data = [];
-            const snapshot = await this.categoryRef.where("category", "==", id.toString()).get();
-            snapshot.docs.map(function (map) {
-                data.push({ id: map.id, ...map.data() })
-            })
-            return data;
-        } catch (e) {
-
-        }
-    }
-
     async deleteCategory(data) {
         new Promise((resolve, reject) => {
             this.categoryRef.doc(data.id).delete().then(() => this.getAllCategory().then(data => resolve(data)).catch((e) => console.log(e)))

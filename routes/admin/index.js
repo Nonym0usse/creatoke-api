@@ -20,9 +20,9 @@ router.get('/list-music', async function (req, res, next) {
     }
 });
 
-router.get('/single-music/:id', async function (req, res, next) {
+router.get('/single-music/:slug', async function (req, res, next) {
     try {
-        await musicsAdmin.singleMusic(req.params.id).then((data) => res.status(200).json(data))
+        await musicsAdmin.singleMusic(req.params.slug).then((data) => res.status(200).json(data))
     } catch (error) {
         res.status(400).json(error);
     }

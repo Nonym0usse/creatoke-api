@@ -15,24 +15,6 @@ router.get('/getAllCategory', async function (req, res, next) {
     }
 });
 
-router.get('/getSubCategory', async function (req, res, next) {
-    try {
-        const categories = await category.getSubCategory()
-        res.status(200).json(categories);
-    } catch (error) {
-        res.status(400).json({ error: e.message })
-    }
-});
-
-router.get('/getSubCategoryByID/:id', async function (req, res, next) {
-    try {
-        const categories = await category.getSubCategoryByID(req.params.id)
-        res.status(200).json(categories);
-    } catch (error) {
-        res.status(400).json({ error: e.message })
-    }
-});
-
 router.post('/delete', verifyTokenMiddleware, async function (req, res, next) {
     try {
         await category.deleteCategory(req.body).then((data) => res.status(200).json(data))
