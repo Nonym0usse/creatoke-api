@@ -13,6 +13,7 @@ import paymentRouter from "./routes/admin/payment.ts";
 import commentRouter from "./routes/admin/comment.ts";
 import renewTokenRouter from "./routes/admin/renew-token.ts";
 import n8nRouter from "./routes/admin/n8n.ts";
+import prospectRouter from "./routes/admin/prospect.ts";
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use("/payment", paymentRouter);
 app.use("/comment", commentRouter);
 app.use("/auth", renewTokenRouter);
 app.use("/n8n", n8nRouter);
+app.use("/prospect", prospectRouter);
 
 app.use(express.static(path.join(import.meta.dirname, "public")));
 

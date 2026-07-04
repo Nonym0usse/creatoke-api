@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Créatoké — Dernière relance</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #000; padding: 10px; text-align: center; }
+        .content { padding: 20px; background-color: #ffffff; }
+        .footer { text-align: center; padding: 10px; background-color: #000; }
+        .footer p { color: #fff; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img src="<%= image %>" width="400px">
+    </div>
+    <div class="content">
+        <p>Bonjour <%= prenom %>,</p>
+        <p>Je ne souhaite pas encombrer votre boîte mail : ce message sera donc mon dernier au sujet de
+            <a href="<%= lien %>">« <%= titre %> »</a>.</p>
+        <p>Sachez simplement que je reste entièrement disponible si vous souhaitez échanger, maintenant ou plus
+            tard — notre catalogue reste à votre disposition.</p>
+        <p>Je vous souhaite une excellente continuation.</p>
+        <p>Bien cordialement,</p>
+        <p>Créatoké<br><a href="mailto:contact@creatoke.com">contact@creatoke.com</a></p>
+    </div>
+    <div class="footer">
+        <p>&copy; Créatoké. Tous droits réservés.</p>
+    </div>
+</div>
+</body>
+</html>

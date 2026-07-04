@@ -6,6 +6,7 @@
 import http from "node:http";
 import createDebug from "debug";
 import app from "../app.ts";
+import { startProspectSequenceJob } from "../jobs/prospectSequence.ts";
 
 const debug = createDebug("creatoke-api:server");
 
@@ -23,6 +24,9 @@ const server = http.createServer(app);
 server.listen(port);
 server.on("error", onError);
 server.on("listening", onListening);
+
+// Relances éditeurs : job quotidien démarré avec le serveur.
+startProspectSequenceJob();
 
 /**
  * Normalize a port into a number, string, or false.
