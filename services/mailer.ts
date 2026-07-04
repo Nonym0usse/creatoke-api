@@ -2,9 +2,9 @@ import nodemailer from "nodemailer";
 import fs from "node:fs";
 import ejs from "ejs";
 
-// Transporter principal (boîte historique @creatoke.net) : contact, livraison des achats.
+// Transporter principal (compte no-reply@creatoke.com) : contact, livraison des achats.
 export const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST ?? "mail.creatoke.net",
+  host: process.env.SMTP_HOST ?? "creatoke.com",
   port: Number(process.env.SMTP_PORT ?? 465),
   secure: (process.env.SMTP_PORT ?? "465") === "465",
   // Pas d'AUTH si aucun identifiant (ex. serveur SMTP de test local).
@@ -13,9 +13,9 @@ export const transporter = nodemailer.createTransport({
     : {}),
 });
 
-// Transporter dédié aux relances éditeurs, envoyées depuis contact@creatoke.com.
+// Transporter dédié aux relances éditeurs, envoyées depuis no-reply@creatoke.com.
 export const prospectTransporter = nodemailer.createTransport({
-  host: process.env.PROSPECT_SMTP_HOST ?? "mail.creatoke.net",
+  host: process.env.PROSPECT_SMTP_HOST ?? "creatoke.com",
   port: Number(process.env.PROSPECT_SMTP_PORT ?? 465),
   secure: (process.env.PROSPECT_SMTP_PORT ?? "465") === "465",
   ...(process.env.PROSPECT_SMTP_USER
@@ -37,7 +37,7 @@ export function mailOptions(
   from?: string,
 ) {
   return {
-    from: from ?? process.env.user,
+    from: from ?? MAIL_FROM,
     to,
     subject,
     html: emailHtml,
@@ -45,7 +45,10 @@ export function mailOptions(
   };
 }
 
-export const PROSPECT_FROM = `Creatoke <${process.env.PROSPECT_SMTP_USER || "contact@creatoke.com"}>`;
+// Adresse d'expédition unique du projet : tous les envois partent de no-reply@creatoke.com.
+export const MAIL_FROM = `Creatoke <${process.env.user || "no-reply@creatoke.com"}>`;
+
+export const PROSPECT_FROM = `Creatoke <${process.env.PROSPECT_SMTP_USER || "no-reply@creatoke.com"}>`;
 
 export async function renderEmailTemplate(templatePath: string, data: ejs.Data): Promise<string> {
   const template = await fs.promises.readFile(templatePath, "utf8");
