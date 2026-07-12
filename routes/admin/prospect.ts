@@ -1,9 +1,11 @@
 import express, { type Request, type Response } from "express";
 import { Prospect } from "../../middleware/admin/Prospect.ts";
+import { ProspectTemplates } from "../../middleware/admin/ProspectTemplates.ts";
 import verifyTokenMiddleware from "../../database/auth.ts";
 
 const router = express.Router();
 const prospect = new Prospect();
+const templates = new ProspectTemplates();
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -57,6 +59,34 @@ router.post("/mark-replied/:id", verifyTokenMiddleware, async (req: Request, res
   try {
     await prospect.markReplied(req.params.id);
     res.status(200).json({ success: "OK" });
+  } catch (error) {
+    res.status(400).json({ error: errorMessage(error) });
+  }
+});
+
+// Modèles des emails de la séquence (sujet + corps), éditables depuis l'admin.
+router.get("/templates", verifyTokenMiddleware, async (_req: Request, res: Response) => {
+  try {
+    const data = await templates.listTemplates();
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(400).json({ error: errorMessage(error) });
+  }
+});
+
+router.put("/templates/:key", verifyTokenMiddleware, async (req: Request, res: Response) => {
+  try {
+    await templates.updateTemplate(req.params.key, req.body?.subject, req.body?.body);
+    res.status(200).json({ success: "OK" });
+  } catch (error) {
+    res.status(400).json({ error: errorMessage(error) });
+  }
+});
+
+router.delete("/templates/:key", verifyTokenMiddleware, async (req: Request, res: Response) => {
+  try {
+    const data = await templates.resetTemplate(req.params.key);
+    res.status(200).json(data);
   } catch (error) {
     res.status(400).json({ error: errorMessage(error) });
   }

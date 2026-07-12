@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Créatoké — Relance</title>
+    <title>Créatoké</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -18,15 +18,7 @@
         <img src="<%= image %>" width="400px">
     </div>
     <div class="content">
-        <p>Bonjour <%= prenom %>,</p>
-        <p>Il y a quelques semaines, je vous avais fait parvenir
-            <a href="<%= lien %>">« <%= titre %> »</a>, une œuvre de notre catalogue Créatoké.</p>
-        <p>Notre catalogue continue de s'enrichir régulièrement de nouvelles créations : n'hésitez pas à y jeter
-            une oreille si vous êtes à la recherche de nouveaux titres.</p>
-        <p>Je serais ravi d'échanger avec vous si l'œuvre — ou d'autres de nos musiques — peut correspondre à vos
-            recherches actuelles.</p>
-        <p>Bien cordialement,</p>
-        <p>Créatoké<br><a href="mailto:contact@creatoke.com">contact@creatoke.com</a></p>
+        <%- contenu %>
     </div>
     <div class="footer">
         <p>&copy; Créatoké. Tous droits réservés.</p>

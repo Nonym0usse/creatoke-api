@@ -4,18 +4,19 @@ import type { FirestoreRecord } from "../Music.ts";
 import {
   prospectTransporter,
   mailOptions,
-  renderEmailTemplate,
-  logoBase64,
   PROSPECT_FROM,
 } from "../../services/mailer.ts";
+import { ProspectTemplates, type TemplateKey } from "./ProspectTemplates.ts";
 
 // Étapes de la séquence de relance (jours après l'envoi initial J0).
 // step = prochaine étape à envoyer pour un contact actif.
-const SEQUENCE_STEPS = [
-  { step: 2, afterDays: 10, template: "templates/prospect/relance-1.ejs", label: "1er rappel (J+10)", subject: (titre: string) => `Avez-vous pu écouter « ${titre} » ?` },
-  { step: 3, afterDays: 30, template: "templates/prospect/relance-2.ejs", label: "2e rappel (J+30)", subject: (titre: string) => `Créatoké — « ${titre} », toujours disponible pour vous` },
-  { step: 4, afterDays: 60, template: "templates/prospect/relance-3.ejs", label: "3e rappel (J+60)", subject: (titre: string) => `Créatoké — je reste à votre disposition` },
-] as const;
+// Le sujet et le corps de chaque email sont éditables depuis l'admin
+// (voir ProspectTemplates).
+const SEQUENCE_STEPS: ReadonlyArray<{ step: number; afterDays: number; template: TemplateKey; label: string }> = [
+  { step: 2, afterDays: 10, template: "relance-1", label: "1er rappel (J+10)" },
+  { step: 3, afterDays: 30, template: "relance-2", label: "2e rappel (J+30)" },
+  { step: 4, afterDays: 60, template: "relance-3", label: "3e rappel (J+60)" },
+];
 
 const CLOSE_AFTER_DAYS = 90;
 
@@ -32,6 +33,7 @@ export interface ProspectInput {
 
 export class Prospect {
   private prospectRef = db.collection("contacts");
+  private templates = new ProspectTemplates();
 
   async listProspects(): Promise<FirestoreRecord[]> {
     const snapshot = await this.prospectRef.orderBy("createdAt", "desc").get();
@@ -85,11 +87,7 @@ export class Prospect {
 
     if (prospect.sequenceStatus !== "draft") throw new Error("ALREADY_SENT");
 
-    await this.sendProspectEmail(
-      prospect,
-      "templates/prospect/presentation.ejs",
-      `Créatoké — une musique à découvrir : « ${prospect.titre_chanson} »`,
-    );
+    await this.sendProspectEmail(prospect, "presentation");
 
     await this.prospectRef.doc(id).update({
       sequenceStatus: "active",
@@ -153,11 +151,7 @@ export class Prospect {
         );
         if (!nextStep) continue;
 
-        await this.sendProspectEmail(
-          prospect,
-          nextStep.template,
-          nextStep.subject(String(prospect.titre_chanson ?? "")),
-        );
+        await this.sendProspectEmail(prospect, nextStep.template);
 
         await this.prospectRef.doc(doc.id).update({
           currentStep: nextStep.step,
@@ -191,18 +185,17 @@ export class Prospect {
     return result;
   }
 
-  private async sendProspectEmail(
-    prospect: FirestoreRecord,
-    template: string,
-    subject: string,
-  ): Promise<void> {
-    const emailHtml = await renderEmailTemplate(template, {
-      image: await logoBase64(),
-      prenom: prospect.prenom ?? "",
-      nom: prospect.nom ?? "",
-      titre: prospect.titre_chanson ?? "",
-      lien: prospect.lien_musique ?? "",
-    });
+  private async sendProspectEmail(prospect: FirestoreRecord, templateKey: TemplateKey): Promise<void> {
+    const template = await this.templates.getTemplate(templateKey);
+    const values = {
+      prenom: String(prospect.prenom ?? ""),
+      nom: String(prospect.nom ?? ""),
+      societe: String(prospect.societe ?? ""),
+      titre: String(prospect.titre_chanson ?? ""),
+      lien: String(prospect.lien_musique ?? ""),
+    };
+    const subject = this.templates.renderSubject(template.subject, values);
+    const emailHtml = await this.templates.renderBody(template.body, values);
     await prospectTransporter.sendMail(
       mailOptions(String(prospect.email), subject, emailHtml, undefined, PROSPECT_FROM),
     );
