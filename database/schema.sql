@@ -77,7 +77,8 @@ CREATE TABLE IF NOT EXISTS licence (
   base_plus    MEDIUMTEXT  NULL,
   premium      MEDIUMTEXT  NULL,
   premiulm     MEDIUMTEXT  NULL,
-  contract_mp3 MEDIUMTEXT  NULL
+  contract_mp3 MEDIUMTEXT  NULL,
+  contract_wav MEDIUMTEXT  NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS selling (

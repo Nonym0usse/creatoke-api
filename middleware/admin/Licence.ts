@@ -1,6 +1,6 @@
 import { insertRow, newId, pick, selectRows, updateRow, type DbRecord } from "../../database/mysql.ts";
 
-const LICENCE_COLUMNS = ["basic", "base_plus", "premium", "premiulm", "contract_mp3"] as const;
+const LICENCE_COLUMNS = ["basic", "base_plus", "premium", "premiulm", "contract_mp3", "contract_wav"] as const;
 
 export class Licence {
   async listLicence(): Promise<DbRecord[]> {
