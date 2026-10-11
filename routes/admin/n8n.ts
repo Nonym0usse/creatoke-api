@@ -10,6 +10,7 @@ import { Bluesky } from "../../middleware/admin/BlueSky.ts";
 import { Instagram } from "../../middleware/admin/Instagram.ts";
 import { videoCompress } from "../../utils/videoCompress.ts";
 import { UPLOAD_DIR, buildPublicUrl } from "../../services/storage.ts";
+import verifyTokenMiddleware from "../../database/auth.ts";
 
 const router = express.Router();
 const fsp = fs.promises;
@@ -43,7 +44,8 @@ function truncateText(text: string | undefined, max = 280): string {
   return Array.from(text).slice(0, max).join("");
 }
 
-router.post("/api/upload", upload.single("video"), async (req: Request, res: Response) => {
+// Authentification vérifiée AVANT multer : aucun fichier écrit sans token valide.
+router.post("/api/upload", verifyTokenMiddleware, upload.single("video"), async (req: Request, res: Response) => {
   if (!req.file) {
     return res.status(400).json({ status: "error", message: "Aucun fichier fourni" });
   }

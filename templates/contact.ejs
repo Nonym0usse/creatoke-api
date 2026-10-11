@@ -40,14 +40,15 @@
 <div class="container">
     <div class="header">
         <img src="<%= image %>" width="400px">
-        <h4><%= name %> souhaiterai rentrer en contact avec vous</h4>
+        <h4><%= name %> souhaite entrer en contact avec vous</h4>
     </div>
     <div class="content">
         <p>Bonjour Gérard,</p>
-        <p>Quelqu'un souhaiterai rentrer en contact avec vous.</p>
-        <p>Voici les coordonnées de la personne : </p>
+        <p>Quelqu'un souhaite entrer en contact avec vous via le formulaire du site.</p>
+        <p>Voici les coordonnées de la personne (répondez simplement à cet email pour lui écrire) : </p>
         <ul>
-            <li><strong>Nom & prénom:</strong> <%= name %></li>
+            <li><strong>Nom & prénom :</strong> <%= name %></li>
+            <li><strong>Email :</strong> <a href="mailto:<%= email %>"><%= email %></a></li>
             <li><strong>Numéro de téléphone :</strong> <%= tel %></li>
             <li><strong>Message :</strong> <%= message %></li>
         </ul>
