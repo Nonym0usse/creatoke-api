@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { type Request, type Response } from "express";
+import fs from "node:fs";
 import path from "node:path";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -15,6 +16,7 @@ import authRouter from "./routes/admin/auth.ts";
 import n8nRouter from "./routes/admin/n8n.ts";
 import prospectRouter from "./routes/admin/prospect.ts";
 import uploadRouter from "./routes/admin/upload.ts";
+import { UPLOAD_DIR } from "./services/storage.ts";
 
 const app = express();
 
@@ -32,7 +34,22 @@ app.use(express.urlencoded({ extended: true, limit: "200mb", parameterLimit: 100
 app.use(cookieParser());
 
 app.set("trust proxy", true); // important derrière nginx/traefik
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads"), { maxAge: "7d" }));
+app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "7d" }));
+
+// Anciens liens de téléchargement : le front ajoutait ".mp3"/".wav" à l'URL du
+// fichier (sans effet avec Firebase, où l'ajout tombait dans le token). Ces liens
+// ont été envoyés par email : on sert le fichier sans l'extension en trop.
+app.get(/^\/uploads\/.+\.(mp3|wav)$/i, (req: Request, res: Response, next) => {
+  let requested: string;
+  try {
+    requested = decodeURIComponent(req.path.slice("/uploads/".length));
+  } catch {
+    return next();
+  }
+  const original = path.resolve(UPLOAD_DIR, requested.replace(/\.(mp3|wav)$/i, ""));
+  if (!original.startsWith(UPLOAD_DIR + path.sep) || !fs.existsSync(original)) return next();
+  res.sendFile(original, { maxAge: "7d" });
+});
 
 app.use("/", indexRouter);
 app.use("/admin", adminRouter);
