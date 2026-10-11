@@ -36,6 +36,10 @@ if (!validator.isEmail(email)) {
 }
 
 let password = process.env.ADMIN_PASSWORD ?? "";
+if (!password && !process.stdin.isTTY) {
+  console.error("Pas de terminal interactif : lancez la commande depuis un vrai terminal (ssh -t ...) ou définissez ADMIN_PASSWORD.");
+  process.exit(1);
+}
 if (!password) {
   password = await askHidden("Mot de passe : ");
   if (password !== (await askHidden("Confirmation : "))) {
