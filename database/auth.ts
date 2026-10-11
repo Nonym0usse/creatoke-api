@@ -1,11 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import { admin } from "./firebase.ts";
+import { verifyToken } from "../services/auth.ts";
 
-const verifyTokenMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
+const verifyTokenMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const token = req.headers.authorization?.split(" ")[1]; // Expecting "Bearer <token>"
   if (!token || token === "null") {
     res.status(401).json({ message: "No token provided, authorization denied" });
@@ -13,11 +9,10 @@ const verifyTokenMiddleware = async (
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken;
+    req.user = verifyToken(token);
     next();
   } catch (error) {
-    console.error("Error verifying token:", error);
+    console.error("Error verifying token:", error instanceof Error ? error.message : error);
     res.status(401).json({ message: "Token verification failed, authorization denied" });
   }
 };

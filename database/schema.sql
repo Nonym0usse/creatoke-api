@@ -1,4 +1,4 @@
--- Schéma MySQL / MariaDB de creatoke-api (remplace Firestore).
+-- Schéma MySQL / MariaDB de creatoke-api.
 -- Les identifiants restent des chaînes : les IDs Firestore existants sont
 -- conservés tels quels lors de la migration, les nouveaux sont des UUID.
 
@@ -159,4 +159,14 @@ CREATE TABLE IF NOT EXISTS prospect_templates (
   subject      TEXT        NOT NULL,
   body         MEDIUMTEXT  NOT NULL,
   updatedAt    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Comptes administrateurs (remplace Firebase Auth). Mot de passe haché en scrypt.
+CREATE TABLE IF NOT EXISTS admins (
+  id            VARCHAR(64)  NOT NULL PRIMARY KEY,
+  email         VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_login_at DATETIME     NULL,
+  UNIQUE KEY uq_admins_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
