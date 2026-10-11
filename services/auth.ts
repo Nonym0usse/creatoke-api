@@ -40,8 +40,13 @@ export async function verifyPassword(password: string, stored: string): Promise<
 }
 
 // Hash factice : la vérification prend le même temps qu'un email existe ou non.
-const DUMMY_HASH = await hashPassword(crypto.randomBytes(16).toString("hex"));
-export const verifyAgainstDummy = (password: string): Promise<boolean> => verifyPassword(password, DUMMY_HASH);
+// Calculé au premier besoin : pas d'await au chargement du module, car Passenger
+// charge l'application avec require(), qui refuse le top-level await.
+let dummyHash: Promise<string> | null = null;
+export const verifyAgainstDummy = async (password: string): Promise<boolean> => {
+  dummyHash ??= hashPassword(crypto.randomBytes(16).toString("hex"));
+  return verifyPassword(password, await dummyHash);
+};
 
 function secret(): string {
   const value = process.env.JWT_SECRET;
