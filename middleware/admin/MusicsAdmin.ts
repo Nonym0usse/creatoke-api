@@ -1,74 +1,97 @@
-import { db, admin } from "../../database/firebase.ts";
-import type { FirestoreRecord } from "../Music.ts";
+import {
+  execute,
+  insertRow,
+  newId,
+  pick,
+  selectOne,
+  selectRows,
+  updateRow,
+  type DbRecord,
+} from "../../database/mysql.ts";
+import { deleteFileByUrl } from "../../services/storage.ts";
+
+const PRICE_COLUMNS = ["price_base", "price_premium", "price_base_creatoke", "price_premium_creatoke"] as const;
+const MEDIA_COLUMNS = ["url", "creatoke", "chanson_mp3", "chanson_wav", "creatoke_mp3", "creatoke_wav", "image"] as const;
+
+const MUSIC_COLUMNS = [
+  "slug", "title", "artist", "category", "description", "lyrics", "message",
+  ...PRICE_COLUMNS,
+  "exclu", "isHeartStroke", "isLicenceBase", "isPremium", "isLicenceBaseCreatoke", "isPremiumCreatoke",
+  "promotion", ...MEDIA_COLUMNS, "youtubeURL", "spotifyURL", "created_at",
+] as const;
+
+// L'admin peut envoyer "" ou "vide" pour un prix absent : NULL en base.
+const toPrice = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+function toRow(music: Record<string, unknown>): Record<string, unknown> {
+  const row = pick(music, MUSIC_COLUMNS);
+  for (const column of PRICE_COLUMNS) {
+    if (column in row) row[column] = toPrice(row[column]);
+  }
+  return row;
+}
 
 export class MusicsAdmin {
-  private musicRef = db.collection("musics");
-  private bucket = admin.storage().bucket();
-
   async createMusic(music: Record<string, unknown>): Promise<string> {
-    await this.musicRef.doc().set({ ...music });
+    await insertRow("musics", { ...toRow(music), id: newId() });
     return "OK";
   }
 
-  async listMusics(): Promise<FirestoreRecord[]> {
-    const snapshot = await this.musicRef.get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async listMusics(): Promise<DbRecord[]> {
+    return selectRows("SELECT * FROM musics ORDER BY id");
   }
 
-  async singleMusic(slug: string): Promise<FirestoreRecord | null> {
-    const snap = await this.musicRef.where("slug", "==", slug).limit(1).get();
-    if (snap.empty) return null;
-    const doc = snap.docs[0]!;
-    return { id: doc.id, ...doc.data() };
+  async singleMusic(slug: string): Promise<DbRecord | null> {
+    return selectOne("SELECT * FROM musics WHERE slug = ? LIMIT 1", [slug]);
   }
 
   async updateMusic(music: Record<string, unknown> & { id: string }): Promise<string> {
-    await this.musicRef.doc(music.id).update({ ...music });
+    await updateRow("musics", music.id, toRow(music));
     return "OK";
   }
 
   async deleteMusic(id: string): Promise<string> {
-    const snapshot = await this.musicRef.doc(id).get();
-    const musicData = snapshot.data();
-    if (musicData) {
-      const nameFieldValues = Object.keys(musicData)
-        .filter((key) => key.endsWith("_name"))
-        .map((key) => musicData[key]);
-      await Promise.all(
-        nameFieldValues
-          .filter((field): field is string => typeof field === "string" && field !== "")
-          .map((field) => this.bucket.file(`songs/${field}`).delete().catch(() => undefined)),
-      );
-    }
-    await this.musicRef.doc(id).delete();
+    const music = await selectOne("SELECT * FROM musics WHERE id = ?", [id]);
+    await execute("DELETE FROM musics WHERE id = ?", [id]);
+    if (!music) return "ok";
+
+    // Supprime les fichiers de la chanson, sauf ceux encore utilisés par une autre.
+    const urls = [...new Set(MEDIA_COLUMNS.map((column) => music[column]).filter((u): u is string => typeof u === "string" && u !== ""))];
+    await Promise.all(
+      urls.map(async (url) => {
+        const stillUsed = await selectOne(
+          `SELECT id FROM musics WHERE ${MEDIA_COLUMNS.map((c) => `${c} = ?`).join(" OR ")} LIMIT 1`,
+          MEDIA_COLUMNS.map(() => url),
+        );
+        if (!stillUsed) await deleteFileByUrl(url);
+      }),
+    );
     return "ok";
   }
 
-  async highlightMusic(): Promise<FirestoreRecord[]> {
-    const snapshot = await this.musicRef
-      .where("isHeartStroke", "==", "oui")
-      .orderBy("created_at", "desc")
-      .get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async highlightMusic(): Promise<DbRecord[]> {
+    // created_at est un texte "AAAA-M-J" (pas toujours paddé) : tri sur la vraie date.
+    return selectRows(
+      "SELECT * FROM musics WHERE isHeartStroke = 'oui' ORDER BY STR_TO_DATE(created_at, '%Y-%m-%d') DESC",
+    );
   }
 
-  async getSongByCategory(params: { category: unknown }): Promise<FirestoreRecord[]> {
-    const snapshot = await this.musicRef
-      .where("category", "==", String(params?.category))
-      .get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async getSongByCategory(params: { category: unknown }): Promise<DbRecord[]> {
+    return selectRows("SELECT * FROM musics WHERE category = ? ORDER BY id", [String(params?.category)]);
   }
 
-  async searchRecommandSongs(limit: string): Promise<FirestoreRecord[]> {
-    const snapshot = await this.musicRef.limit(parseInt(limit, 10)).get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async searchRecommandSongs(limit: string): Promise<DbRecord[]> {
+    const n = parseInt(limit, 10);
+    return selectRows("SELECT * FROM musics ORDER BY id LIMIT ?", [Number.isFinite(n) && n > 0 ? n : 10]);
   }
 
-  async search(searchTerm: string): Promise<FirestoreRecord[]> {
-    const snapshot = await this.musicRef
-      .where("title", ">=", searchTerm)
-      .where("title", "<=", searchTerm + "")
-      .get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  // Recherche par début de titre (insensible à la casse et aux accents).
+  async search(searchTerm: string): Promise<DbRecord[]> {
+    const escaped = searchTerm.replace(/[\\%_]/g, (c) => `\\${c}`);
+    return selectRows("SELECT * FROM musics WHERE title LIKE ? ORDER BY title", [`${escaped}%`]);
   }
 }

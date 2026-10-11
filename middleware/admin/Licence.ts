@@ -1,19 +1,18 @@
-import { db } from "../../database/firebase.ts";
-import type { FirestoreRecord } from "../Music.ts";
+import { insertRow, newId, pick, selectRows, updateRow, type DbRecord } from "../../database/mysql.ts";
+
+const LICENCE_COLUMNS = ["basic", "base_plus", "premium", "premiulm", "contract_mp3"] as const;
 
 export class Licence {
-  private licenceRef = db.collection("licence");
-
-  async listLicence(): Promise<FirestoreRecord[]> {
-    const snapshot = await this.licenceRef.get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async listLicence(): Promise<DbRecord[]> {
+    return selectRows("SELECT * FROM licence");
   }
 
   async updateLicence(data: Record<string, unknown> & { id?: string }): Promise<string> {
+    const row = pick(data, LICENCE_COLUMNS);
     if (!data.id) {
-      await this.licenceRef.doc().set({ ...data });
+      await insertRow("licence", { ...row, id: newId() });
     } else {
-      await this.licenceRef.doc(data.id).update({ ...data });
+      await updateRow("licence", data.id, row);
     }
     return "OK";
   }

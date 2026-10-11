@@ -1,66 +1,66 @@
-import { db, admin } from "../../database/firebase.ts";
-import type { FirestoreRecord } from "../Music.ts";
+import {
+  execute,
+  insertRow,
+  newId,
+  pick,
+  selectOne,
+  selectRows,
+  updateRow,
+  type DbRecord,
+} from "../../database/mysql.ts";
+import { deleteFileByUrl } from "../../services/storage.ts";
+
+const CATEGORY_COLUMNS = ["category", "title_fr", "picture", "picture_name"] as const;
 
 export class Category {
-  private categoryRef = db.collection("category");
-  private bucket = admin.storage().bucket();
-
-  async getAllCategory(): Promise<FirestoreRecord[]> {
-    const snapshot = await this.categoryRef.get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async getAllCategory(): Promise<DbRecord[]> {
+    return selectRows("SELECT * FROM category ORDER BY id");
   }
 
-  async deleteCategory(data: { id: string; picture?: string }): Promise<FirestoreRecord[]> {
-    await this.categoryRef.doc(data.id).delete();
-    if (data.picture) {
-      await this.bucket.file(`category/${data.picture}`).delete().catch(() => undefined);
-    }
+  async deleteCategory(data: { id: string }): Promise<DbRecord[]> {
+    const existing = await selectOne("SELECT * FROM category WHERE id = ?", [data.id]);
+    await execute("DELETE FROM category WHERE id = ?", [data.id]);
+    if (existing) await deleteFileByUrl(existing.picture);
     return this.getAllCategory();
   }
 
   async createCategory(category: Record<string, unknown>): Promise<string> {
-    await this.categoryRef.doc().set({ ...category });
+    await insertRow("category", { ...pick(category, CATEGORY_COLUMNS), id: newId() });
     return "OK";
   }
 
+  // Une seule image de fond : l'ancienne (ligne + fichier) est remplacée.
   async createBackground(data: { picture?: string; picture_name?: string }): Promise<string> {
     const backgrounds = await this.getBackgroundImg();
+    await execute("DELETE FROM background");
     await Promise.all(
-      backgrounds.map(async (background) => {
-        if (background.id) {
-          await db.collection("background").doc(background.id).delete();
-          if (typeof background.picture_name === "string") {
-            await this.bucket
-              .file(`background/${background.picture_name}`)
-              .delete()
-              .catch(() => undefined);
-          }
-        }
-      }),
+      backgrounds
+        .filter((background) => background.picture !== data?.picture)
+        .map((background) => deleteFileByUrl(background.picture)),
     );
-    await db
-      .collection("background")
-      .doc()
-      .set({ picture: data?.picture, picture_name: data?.picture_name });
+    await insertRow("background", {
+      id: newId(),
+      picture: data?.picture ?? null,
+      picture_name: data?.picture_name ?? null,
+    });
     return "OK";
   }
 
   async modifyText(text: Record<string, unknown> & { id?: string }): Promise<string> {
+    const row = pick(text, ["text"]);
     if (text.id === undefined || text.id === "") {
-      await db.collection("texts").doc().set(text);
+      await insertRow("texts", { ...row, id: newId() });
     } else {
-      await db.collection("texts").doc(text.id).update(text);
+      await updateRow("texts", text.id, row);
     }
     return "OK";
   }
 
-  async getBackgroundImg(): Promise<FirestoreRecord[]> {
-    const snapshot = await db.collection("background").get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async getBackgroundImg(): Promise<DbRecord[]> {
+    return selectRows("SELECT * FROM background");
   }
 
-  async getTexts(): Promise<FirestoreRecord[]> {
-    const snapshot = await db.collection("texts").get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async getTexts(): Promise<DbRecord[]> {
+    return selectRows("SELECT * FROM texts");
   }
 }

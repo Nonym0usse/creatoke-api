@@ -1,5 +1,7 @@
 import PDFDocument from "pdfkit";
-import { db, admin } from "../database/firebase.ts";
+import type { RowDataPacket } from "mysql2/promise";
+import { execute, insertRow, pick, pool } from "../database/mysql.ts";
+import { savePrivateFile } from "./storage.ts";
 import { seller, VAT_NOTICE } from "../config/seller.ts";
 
 export interface InvoiceData {
@@ -23,19 +25,24 @@ export function licenceLabel(licence_name: string | undefined): string {
   return LICENCE_LABELS[licence_name ?? ""] ?? "Licence d'utilisation";
 }
 
-// Numéro séquentiel par année (CREA-2026-0001), compteur incrémenté en transaction
-// Firestore pour éviter tout doublon en cas d'achats simultanés.
+// Numéro séquentiel par année (CREA-2026-0001). L'incrément se fait en une seule
+// requête atomique (LAST_INSERT_ID) : aucun doublon en cas d'achats simultanés.
 export async function nextInvoiceNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const counterRef = db.collection("counters").doc(`invoice-${year}`);
-  const seq = await db.runTransaction(async (tx) => {
-    const snapshot = await tx.get(counterRef);
-    const current = snapshot.exists ? (snapshot.data()?.seq as number) : 0;
-    const next = current + 1;
-    tx.set(counterRef, { seq: next });
-    return next;
-  });
-  return `CREA-${year}-${String(seq).padStart(4, "0")}`;
+  const connection = await pool.getConnection();
+  try {
+    await connection.query(
+      `INSERT INTO counters (name, seq) VALUES (?, LAST_INSERT_ID(1))
+       ON DUPLICATE KEY UPDATE seq = LAST_INSERT_ID(seq + 1)`,
+      [`invoice-${year}`],
+    );
+    const [rows] = await connection.query<RowDataPacket[]>(
+      "SELECT LAST_INSERT_ID() AS seq",
+    );
+    return `CREA-${year}-${String(rows[0]!.seq as number).padStart(4, "0")}`;
+  } finally {
+    connection.release();
+  }
 }
 
 export function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
@@ -112,7 +119,7 @@ export interface StoredInvoice {
   storagePath: string;
 }
 
-// Sauvegarde le PDF dans Firebase Storage et les métadonnées dans la collection `invoices`.
+// Sauvegarde le PDF sur le disque (dossier privé storage/) et les métadonnées en base.
 export async function storeInvoice(
   pdf: Buffer,
   data: InvoiceData,
@@ -120,11 +127,9 @@ export async function storeInvoice(
   extra: Record<string, unknown>,
 ): Promise<StoredInvoice> {
   const storagePath = `invoices/${data.invoiceNumber}.pdf`;
-  await admin.storage().bucket().file(storagePath).save(pdf, {
-    contentType: "application/pdf",
-  });
+  await savePrivateFile(storagePath, pdf);
 
-  await db.collection("invoices").doc(data.invoiceNumber).set({
+  await insertRow("invoices", {
     invoiceNumber: data.invoiceNumber,
     sellingId,
     nom_client: data.nom_client ?? "",
@@ -134,8 +139,7 @@ export async function storeInvoice(
     price: Number(data.price),
     date: data.date,
     storagePath,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    ...extra,
+    ...pick(extra, ["id_song", "year", "month", "emailStatus"]),
   });
 
   return { invoiceNumber: data.invoiceNumber, storagePath };
@@ -146,8 +150,9 @@ export async function updateInvoiceEmailStatus(
   emailStatus: "sent" | "failed",
   emailError?: string,
 ): Promise<void> {
-  await db.collection("invoices").doc(invoiceNumber).update({
+  await execute("UPDATE invoices SET emailStatus = ?, emailError = ? WHERE invoiceNumber = ?", [
     emailStatus,
-    ...(emailError ? { emailError } : {}),
-  });
+    emailError ?? null,
+    invoiceNumber,
+  ]);
 }

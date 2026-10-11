@@ -1,5 +1,4 @@
-import { db } from "../../database/firebase.ts";
-import type { FirestoreRecord } from "../Music.ts";
+import { insertRow, newId, pick, selectOne, selectRows, type DbRecord } from "../../database/mysql.ts";
 import {
   nextInvoiceNumber,
   generateInvoicePdf,
@@ -14,29 +13,29 @@ import {
   logoBase64,
 } from "../../services/mailer.ts";
 
-export class Payment {
-  private paymentRef = db.collection("selling");
+const SELLING_COLUMNS = [
+  "date", "month", "year", "email_client", "nom_client", "id_song",
+  "titre_chanson", "licence_name", "price", "songUrlDownload",
+] as const;
 
-  async createPayment(data: Record<string, unknown>): Promise<FirestoreRecord> {
-    const docRef = this.paymentRef.doc();
-    await docRef.set(data);
-    const docSnapshot = await docRef.get();
-    if (docSnapshot.exists) {
-      return { id: docSnapshot.id, ...docSnapshot.data() };
-    }
+export class Payment {
+  async createPayment(data: Record<string, unknown>): Promise<DbRecord> {
+    const id = newId();
+    await insertRow("selling", { ...pick(data, SELLING_COLUMNS), id });
+    const created = await selectOne("SELECT * FROM selling WHERE id = ?", [id]);
+    if (created) return created;
     throw new Error("Failed to retrieve newly created payment.");
   }
 
-  async getPaymentFromCurrentYear(): Promise<FirestoreRecord[]> {
+  async getPaymentFromCurrentYear(): Promise<DbRecord[]> {
     const currentYear = new Date().getFullYear();
-    const snapshot = await this.paymentRef.where("year", "==", currentYear).get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return selectRows("SELECT * FROM selling WHERE year = ?", [currentYear]);
   }
 
   // Post-traitement d'une vente : facture PDF + email de livraison à l'acheteur.
   // Appelé en fire-and-forget après la réponse HTTP : un échec ici ne doit
   // jamais faire échouer l'achat ni bloquer le téléchargement.
-  async processPostPayment(selling: FirestoreRecord): Promise<void> {
+  async processPostPayment(selling: DbRecord): Promise<void> {
     const email_client = String(selling.email_client ?? "");
     if (!email_client) {
       console.error(`processPostPayment: vente ${selling.id} sans email_client, facture ignorée.`);

@@ -9,14 +9,10 @@ import FormData from "form-data";
 import { Bluesky } from "../../middleware/admin/BlueSky.ts";
 import { Instagram } from "../../middleware/admin/Instagram.ts";
 import { videoCompress } from "../../utils/videoCompress.ts";
+import { UPLOAD_DIR, buildPublicUrl } from "../../services/storage.ts";
 
 const router = express.Router();
 const fsp = fs.promises;
-
-// ---- Config ----
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
-const BASE_PUBLIC_URL = (process.env.BASE_PUBLIC_URL || "").replace(/\/+$/, ""); // ex: https://api.creatoke.fr
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // Multer: disque + nom unique + filtre vidéo
 const storage = multer.diskStorage({
@@ -45,21 +41,6 @@ function truncateText(text: string | undefined, max = 280): string {
   if (!text) return "";
   // découpe Unicode-safe
   return Array.from(text).slice(0, max).join("");
-}
-
-// URL publique robuste
-function buildPublicUrl(req: Request, filename: string): string | null {
-  if (BASE_PUBLIC_URL) {
-    return `${BASE_PUBLIC_URL}/uploads/${encodeURIComponent(filename)}`;
-  }
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  const proto =
-    (typeof forwardedProto === "string" && forwardedProto.split(",")[0].trim()) ||
-    req.protocol ||
-    "https";
-  const host = req.get("x-forwarded-host") || req.get("host");
-  if (!host) return null;
-  return `${proto}://${host.replace(/\/+$/, "")}/uploads/${encodeURIComponent(filename)}`;
 }
 
 router.post("/api/upload", upload.single("video"), async (req: Request, res: Response) => {

@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { Prospect } from "../middleware/admin/Prospect.ts";
 
 // Job quotidien de relances éditeurs (9h, heure de Paris).
-// L'idempotence est garantie par l'état Firestore (currentStep + seuils de
+// L'idempotence est garantie par l'état en base (currentStep + seuils de
 // jours) : un redémarrage ou un jour manqué est rattrapé au run suivant.
 // ⚠️ pm2 : mode fork / 1 instance obligatoire, sinon envois dupliqués.
 export function startProspectSequenceJob(): void {

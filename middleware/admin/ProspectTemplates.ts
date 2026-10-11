@@ -1,8 +1,8 @@
-import { db, admin } from "../../database/firebase.ts";
+import { execute, selectOne, selectRows } from "../../database/mysql.ts";
 import { renderEmailTemplate, logoBase64 } from "../../services/mailer.ts";
 
 // Emails de la séquence éditeurs dont le contenu est éditable depuis l'admin.
-// Le texte est stocké en Firestore (collection prospectTemplates) ; en
+// Le texte est stocké en base (table prospect_templates) ; en
 // l'absence de personnalisation, les valeurs par défaut ci-dessous s'appliquent.
 export const TEMPLATE_KEYS = ["presentation", "relance-1", "relance-2", "relance-3"] as const;
 export type TemplateKey = (typeof TEMPLATE_KEYS)[number];
@@ -103,13 +103,11 @@ const isTemplateKey = (key: string): key is TemplateKey =>
   (TEMPLATE_KEYS as readonly string[]).includes(key);
 
 export class ProspectTemplates {
-  private templateRef = db.collection("prospectTemplates");
-
-  // Liste les 4 emails de la séquence, personnalisation Firestore fusionnée
+  // Liste les 4 emails de la séquence, personnalisation en base fusionnée
   // avec les valeurs par défaut.
   async listTemplates(): Promise<Array<EmailTemplate & { key: TemplateKey; label: string; custom: boolean }>> {
-    const snapshot = await this.templateRef.get();
-    const overrides = new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
+    const rows = await selectRows<EmailTemplate & { template_key: string }>("SELECT * FROM prospect_templates");
+    const overrides = new Map(rows.map((row) => [row.template_key, row]));
     return TEMPLATE_KEYS.map((key) => {
       const override = overrides.get(key);
       return {
@@ -123,9 +121,8 @@ export class ProspectTemplates {
   }
 
   async getTemplate(key: TemplateKey): Promise<EmailTemplate> {
-    const snapshot = await this.templateRef.doc(key).get();
-    if (!snapshot.exists) return DEFAULT_TEMPLATES[key];
-    const data = snapshot.data() ?? {};
+    const data = await selectOne<EmailTemplate>("SELECT * FROM prospect_templates WHERE template_key = ?", [key]);
+    if (!data) return DEFAULT_TEMPLATES[key];
     return {
       subject: String(data.subject ?? DEFAULT_TEMPLATES[key].subject),
       body: String(data.body ?? DEFAULT_TEMPLATES[key].body),
@@ -136,17 +133,17 @@ export class ProspectTemplates {
     if (!isTemplateKey(key)) throw new Error("INVALID_TEMPLATE_KEY");
     if (typeof subject !== "string" || !subject.trim()) throw new Error("INVALID_SUBJECT");
     if (typeof body !== "string" || !body.trim()) throw new Error("INVALID_BODY");
-    await this.templateRef.doc(key).set({
-      subject: subject.trim(),
-      body: body.trim(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    await execute(
+      `INSERT INTO prospect_templates (template_key, subject, body) VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE subject = VALUES(subject), body = VALUES(body)`,
+      [key, subject.trim(), body.trim()],
+    );
   }
 
   // Supprime la personnalisation : l'email revient au texte par défaut.
   async resetTemplate(key: string): Promise<EmailTemplate & { label: string }> {
     if (!isTemplateKey(key)) throw new Error("INVALID_TEMPLATE_KEY");
-    await this.templateRef.doc(key).delete();
+    await execute("DELETE FROM prospect_templates WHERE template_key = ?", [key]);
     return DEFAULT_TEMPLATES[key];
   }
 

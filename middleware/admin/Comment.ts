@@ -1,26 +1,25 @@
-import { db } from "../../database/firebase.ts";
-import type { FirestoreRecord } from "../Music.ts";
+import { execute, insertRow, newId, pick, selectRows, type DbRecord } from "../../database/mysql.ts";
+
+const COMMENT_COLUMNS = ["music_id", "name", "email", "ratings", "comment", "created_at"] as const;
 
 export class Comment {
-  private commentRef = db.collection("comment");
-
   async createComment(data: Record<string, unknown>): Promise<string> {
-    await this.commentRef.doc().set(data);
+    const row = pick(data, COMMENT_COLUMNS);
+    if (row.ratings !== undefined) row.ratings = Number(row.ratings) || null;
+    await insertRow("comment", { ...row, id: newId() });
     return "OK";
   }
 
-  async getAllComments(): Promise<FirestoreRecord[]> {
-    const snapshot = await this.commentRef.get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async getAllComments(): Promise<DbRecord[]> {
+    return selectRows("SELECT * FROM comment ORDER BY id");
   }
 
-  async getComments(id: string): Promise<FirestoreRecord[]> {
-    const snapshot = await this.commentRef.where("music_id", "==", id).get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async getComments(id: string): Promise<DbRecord[]> {
+    return selectRows("SELECT * FROM comment WHERE music_id = ? ORDER BY id", [id]);
   }
 
   async deleteComment(id: string): Promise<string> {
-    await this.commentRef.doc(id).delete();
+    await execute("DELETE FROM comment WHERE id = ?", [id]);
     return "OK";
   }
 }

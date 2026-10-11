@@ -1,13 +1,8 @@
-import { db } from "../database/firebase.ts";
-
-export type FirestoreRecord = { id: string } & Record<string, unknown>;
+import { selectRows, type DbRecord } from "../database/mysql.ts";
 
 export class Music {
-  private musicRef = db.collection("musics");
-
-  async getMusics(): Promise<FirestoreRecord[]> {
-    const snapshot = await this.musicRef.get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  async getMusics(): Promise<DbRecord[]> {
+    return selectRows("SELECT * FROM musics ORDER BY id");
   }
 }
 
