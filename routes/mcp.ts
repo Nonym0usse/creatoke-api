@@ -1,6 +1,14 @@
 import express, { type Request, type Response } from "express";
 import cors from "cors";
-import { mcpAuthRouter, getOAuthProtectedResourceMetadataUrl } from "@modelcontextprotocol/sdk/server/auth/router.js";
+import {
+  createOAuthMetadata,
+  getOAuthProtectedResourceMetadataUrl,
+  mcpAuthMetadataRouter,
+} from "@modelcontextprotocol/sdk/server/auth/router.js";
+import { authorizationHandler } from "@modelcontextprotocol/sdk/server/auth/handlers/authorize.js";
+import { tokenHandler } from "@modelcontextprotocol/sdk/server/auth/handlers/token.js";
+import { clientRegistrationHandler } from "@modelcontextprotocol/sdk/server/auth/handlers/register.js";
+import { revocationHandler } from "@modelcontextprotocol/sdk/server/auth/handlers/revoke.js";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { execute, selectOne } from "../database/mysql.ts";
@@ -16,8 +24,7 @@ import { renderLoginPage } from "../mcp/login-page.ts";
 import { buildMcpServer } from "../mcp/tools.ts";
 
 // Connecteur MCP pour assistants IA (ChatGPT, Claude…) : https://api.creatoke.fr/mcp
-// Monté à la racine de l'application : les adresses OAuth (/authorize, /token,
-// /register, /revoke, /.well-known/…) doivent y être, comme l'exige le SDK.
+// Monté à la racine de l'application (les descriptions /.well-known/… y sont).
 
 const baseUrl = new URL(process.env.MCP_PUBLIC_URL || process.env.BASE_PUBLIC_URL || "http://localhost:3001");
 const mcpUrl = new URL("/mcp", baseUrl);
@@ -26,23 +33,29 @@ const RATE_LIMIT = { validate: { trustProxy: false } };
 
 const router = express.Router();
 
+// Adresses OAuth regroupées sous /mcp/oauth/ (au lieu de /authorize, /token,
+// /register… à la racine, valeurs par défaut du SDK) : chez o2switch, un filtre
+// anti-robots bloque les POST sur « /register » après quelques inscriptions.
+// Les assistants lisent ces adresses dans la description publiée (RFC 8414).
+const oauthUrl = (path: string): string => new URL(`/mcp/oauth/${path}`, baseUrl).href;
+const oauthMetadata = {
+  ...createOAuthMetadata({ provider, issuerUrl: baseUrl, baseUrl, scopesSupported: [MCP_SCOPE] }),
+  authorization_endpoint: oauthUrl("authorize"),
+  token_endpoint: oauthUrl("token"),
+  registration_endpoint: oauthUrl("clients"),
+  revocation_endpoint: oauthUrl("revoke"),
+};
+
 router.use(
-  mcpAuthRouter({
-    provider,
-    issuerUrl: baseUrl,
-    baseUrl,
-    resourceServerUrl: mcpUrl,
-    resourceName: "Créatoké",
-    scopesSupported: [MCP_SCOPE],
-    // L'application fait confiance à X-Forwarded-For (« trust proxy ») : la limite
-    // par IP du SDK est contournable et le signale à chaque requête. La page de
-    // connexion limite de toute façon les essais par e-mail (services/auth.ts).
-    authorizationOptions: { rateLimit: RATE_LIMIT },
-    tokenOptions: { rateLimit: RATE_LIMIT },
-    clientRegistrationOptions: { rateLimit: RATE_LIMIT },
-    revocationOptions: { rateLimit: RATE_LIMIT },
-  }),
+  mcpAuthMetadataRouter({ oauthMetadata, resourceServerUrl: mcpUrl, scopesSupported: [MCP_SCOPE], resourceName: "Créatoké" }),
 );
+// L'application fait confiance à X-Forwarded-For (« trust proxy ») : la limite
+// par IP du SDK est contournable et le signale à chaque requête. La page de
+// connexion limite de toute façon les essais par e-mail (services/auth.ts).
+router.use("/mcp/oauth/authorize", authorizationHandler({ provider, rateLimit: RATE_LIMIT }));
+router.use("/mcp/oauth/token", tokenHandler({ provider, rateLimit: RATE_LIMIT }));
+router.use("/mcp/oauth/clients", clientRegistrationHandler({ clientsStore: provider.clientsStore, rateLimit: RATE_LIMIT }));
+router.use("/mcp/oauth/revoke", revocationHandler({ provider, rateLimit: RATE_LIMIT }));
 
 type AdminRow = { id: string; email: string; password_hash: string };
 
