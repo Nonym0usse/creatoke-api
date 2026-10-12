@@ -16,9 +16,14 @@ import authRouter from "./routes/admin/auth.ts";
 import n8nRouter from "./routes/admin/n8n.ts";
 import prospectRouter from "./routes/admin/prospect.ts";
 import uploadRouter from "./routes/admin/upload.ts";
+import mcpRouter from "./routes/mcp.ts";
 import { UPLOAD_DIR } from "./services/storage.ts";
 
 const app = express();
+
+// Connecteur MCP (assistants IA) : avant le CORS et les lecteurs de corps
+// globaux, car il a ses propres règles (en-têtes MCP, OAuth à la racine).
+app.use(mcpRouter);
 
 // CORS (consolidé : remplace l'ancien header manuel + cors() en double)
 app.use(
