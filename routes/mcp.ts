@@ -19,9 +19,11 @@ import {
   verifyAgainstDummy,
   verifyPassword,
 } from "../services/auth.ts";
-import { CreatokeOAuthProvider, MCP_SCOPE } from "../mcp/oauth.ts";
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { CreatokeOAuthProvider, MCP_SCOPE, MCP_WRITE_SCOPE } from "../mcp/oauth.ts";
 import { renderLoginPage } from "../mcp/login-page.ts";
 import { buildMcpServer } from "../mcp/tools.ts";
+import { loadSections } from "../mcp/shared.ts";
 
 // Connecteur MCP pour assistants IA (ChatGPT, Claude…) : https://api.creatoke.fr/mcp
 // Monté à la racine de l'application (les descriptions /.well-known/… y sont).
@@ -29,7 +31,6 @@ import { buildMcpServer } from "../mcp/tools.ts";
 const baseUrl = new URL(process.env.MCP_PUBLIC_URL || process.env.BASE_PUBLIC_URL || "http://localhost:3001");
 const mcpUrl = new URL("/mcp", baseUrl);
 const provider = new CreatokeOAuthProvider();
-const RATE_LIMIT = { validate: { trustProxy: false } };
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ const router = express.Router();
 // Les assistants lisent ces adresses dans la description publiée (RFC 8414).
 const oauthUrl = (path: string): string => new URL(`/mcp/oauth/${path}`, baseUrl).href;
 const oauthMetadata = {
-  ...createOAuthMetadata({ provider, issuerUrl: baseUrl, baseUrl, scopesSupported: [MCP_SCOPE] }),
+  ...createOAuthMetadata({ provider, issuerUrl: baseUrl, baseUrl, scopesSupported: [MCP_SCOPE, MCP_WRITE_SCOPE] }),
   authorization_endpoint: oauthUrl("authorize"),
   token_endpoint: oauthUrl("token"),
   registration_endpoint: oauthUrl("clients"),
@@ -47,15 +48,12 @@ const oauthMetadata = {
 };
 
 router.use(
-  mcpAuthMetadataRouter({ oauthMetadata, resourceServerUrl: mcpUrl, scopesSupported: [MCP_SCOPE], resourceName: "Créatoké" }),
+  mcpAuthMetadataRouter({ oauthMetadata, resourceServerUrl: mcpUrl, scopesSupported: [MCP_SCOPE, MCP_WRITE_SCOPE], resourceName: "Créatoké" }),
 );
-// L'application fait confiance à X-Forwarded-For (« trust proxy ») : la limite
-// par IP du SDK est contournable et le signale à chaque requête. La page de
-// connexion limite de toute façon les essais par e-mail (services/auth.ts).
-router.use("/mcp/oauth/authorize", authorizationHandler({ provider, rateLimit: RATE_LIMIT }));
-router.use("/mcp/oauth/token", tokenHandler({ provider, rateLimit: RATE_LIMIT }));
-router.use("/mcp/oauth/clients", clientRegistrationHandler({ clientsStore: provider.clientsStore, rateLimit: RATE_LIMIT }));
-router.use("/mcp/oauth/revoke", revocationHandler({ provider, rateLimit: RATE_LIMIT }));
+router.use("/mcp/oauth/authorize", authorizationHandler({ provider }));
+router.use("/mcp/oauth/token", tokenHandler({ provider }));
+router.use("/mcp/oauth/clients", clientRegistrationHandler({ clientsStore: provider.clientsStore }));
+router.use("/mcp/oauth/revoke", revocationHandler({ provider }));
 
 type AdminRow = { id: string; email: string; password_hash: string };
 
@@ -107,7 +105,8 @@ router.post("/mcp/login", express.urlencoded({ extended: false }), async (req: R
       adminId: admin.id,
       redirectUri,
       codeChallenge,
-      scopes: scopes.length ? scopes : [MCP_SCOPE],
+      // Sans demande précise, l'accès couvre la consultation et les actions (annoncées sur la page).
+      scopes: scopes.length ? scopes : [MCP_SCOPE, MCP_WRITE_SCOPE],
       resource,
     });
     const target = new URL(redirectUri);
@@ -138,13 +137,19 @@ const bearer = requireBearerAuth({
 // Mode sans session : chaque requête crée son serveur (Passenger peut répartir
 // les requêtes sur plusieurs processus).
 router.post("/mcp", bearer, express.json({ limit: "1mb" }), async (req: Request, res: Response) => {
-  const server = buildMcpServer();
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
-  res.on("close", () => {
-    void transport.close();
-    void server.close();
-  });
+  const auth = (req as Request & { auth?: AuthInfo }).auth;
   try {
+    await loadSections();
+    const server = buildMcpServer({
+      adminId: String(auth?.extra?.adminId ?? ""),
+      clientId: auth?.clientId ?? "",
+      scopes: auth?.scopes ?? [],
+    });
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    res.on("close", () => {
+      void transport.close();
+      void server.close();
+    });
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (error) {

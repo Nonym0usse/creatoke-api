@@ -13,9 +13,10 @@ import licenceRouter from "./routes/admin/licence.ts";
 import paymentRouter from "./routes/admin/payment.ts";
 import commentRouter from "./routes/admin/comment.ts";
 import authRouter from "./routes/admin/auth.ts";
-import n8nRouter from "./routes/admin/n8n.ts";
+import videoPublishRouter from "./routes/admin/videoPublish.ts";
 import prospectRouter from "./routes/admin/prospect.ts";
 import uploadRouter from "./routes/admin/upload.ts";
+import sectionsRouter from "./routes/admin/sections.ts";
 import mcpRouter from "./routes/mcp.ts";
 import { UPLOAD_DIR } from "./services/storage.ts";
 
@@ -38,7 +39,10 @@ app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ extended: true, limit: "200mb", parameterLimit: 1000000 }));
 app.use(cookieParser());
 
-app.set("trust proxy", true); // important derrière nginx/traefik
+// Derrière le proxy d'o2switch (Passenger se connecte depuis 127.0.0.1) : on ne fait
+// confiance qu'à lui pour X-Forwarded-For, qu'il réécrit avec l'IP réelle du visiteur.
+// Avec `true`, n'importe qui joignant l'API autrement pourrait choisir son IP.
+app.set("trust proxy", "loopback");
 app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "7d" }));
 
 // Anciens liens de téléchargement : le front ajoutait ".mp3"/".wav" à l'URL du
@@ -64,9 +68,10 @@ app.use("/licence", licenceRouter);
 app.use("/payment", paymentRouter);
 app.use("/comment", commentRouter);
 app.use("/auth", authRouter);
-app.use("/n8n", n8nRouter);
+app.use("/video", videoPublishRouter);
 app.use("/prospect", prospectRouter);
 app.use("/upload", uploadRouter);
+app.use("/sections", sectionsRouter);
 
 app.use(express.static(path.join(import.meta.dirname, "public")));
 

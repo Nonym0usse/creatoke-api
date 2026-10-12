@@ -57,13 +57,15 @@ export function renderLoginPage({ client, params, email, error }: LoginPageInput
 <body>
 <main class="card">
   <h1>Connecter ${escape(appName)} à Créatoké</h1>
-  <p><strong>${escape(appName)}</strong> demande à consulter les informations de Créatoké. Il pourra :</p>
+  <p><strong>${escape(appName)}</strong> demande l'accès à Créatoké. Il pourra :</p>
   <ul>
-    <li>rechercher des chansons et lire leurs fiches (prix, licences, fichiers) ;</li>
-    <li>consulter les ventes, le chiffre d'affaires et les factures ;</li>
-    <li>consulter les prospects et l'avancement des relances.</li>
+    <li>consulter le catalogue, les ventes, les factures, les prospects et les vidéos publiées ;</li>
+    <li>avec <strong>votre accord à chaque fois</strong> : ajouter, modifier ou supprimer des chansons et des rubriques,
+      modifier les licences, le texte d'accueil et l'image de fond, publier des vidéos sur les réseaux sociaux, gérer les
+      prospects et leur envoyer des e-mails, modérer les commentaires.</li>
   </ul>
-  <p>Il ne pourra <strong>rien modifier</strong> sur le site. Connectez-vous avec votre compte administrateur pour accepter.</p>
+  <p>Il ne pourra ni encaisser, ni rembourser, ni modifier les mots de passe ou les comptes administrateurs. Chaque action est
+    enregistrée. Connectez-vous avec votre compte administrateur pour accepter.</p>
   ${error ? `<div class="error" role="alert">${escape(error)}</div>` : ""}
   <form method="post" action="/mcp/login">
     ${Object.entries(hidden)

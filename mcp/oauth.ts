@@ -23,6 +23,7 @@ const ACCESS_TTL_S = 60 * 60;
 const REFRESH_TTL_S = 30 * 24 * 60 * 60;
 
 export const MCP_SCOPE = "creatoke:read";
+export const MCP_WRITE_SCOPE = "creatoke:write";
 
 const sha256 = (value: string): string => crypto.createHash("sha256").update(value).digest("hex");
 const randomToken = (): string => crypto.randomBytes(32).toString("base64url");

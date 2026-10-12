@@ -207,3 +207,58 @@ CREATE TABLE IF NOT EXISTS mcp_tokens (
   KEY idx_mcp_tokens_admin (admin_id),
   KEY idx_mcp_tokens_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Connecteur MCP, phase 2 : journal des actions faites par un assistant IA
+-- (qui, quand, quel outil, avec quels paramètres, réussite ou erreur).
+CREATE TABLE IF NOT EXISTS mcp_actions (
+  id         INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  admin_id   VARCHAR(64)  NOT NULL,
+  client_id  VARCHAR(64)  NOT NULL,
+  tool       VARCHAR(64)  NOT NULL,
+  params     TEXT         NULL,
+  ok         TINYINT(1)   NOT NULL,
+  result     TEXT         NULL,
+  created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_mcp_actions_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Rubriques du catalogue (« Chansons à chanter », « Instrumentaux »…), jusqu'ici
+-- écrites en dur dans le front. slug = valeur de musics.category.
+-- has_creatoke : la rubrique propose une version créatoké (fichiers et prix) ;
+-- has_lyrics : les paroles sont proposées ; item_label : « Acheter <item_label> ».
+CREATE TABLE IF NOT EXISTS sections (
+  slug         VARCHAR(100) NOT NULL PRIMARY KEY,
+  label        VARCHAR(100) NOT NULL,
+  icon         VARCHAR(64)  NOT NULL DEFAULT 'ri-music-2-line',
+  description  VARCHAR(500) NOT NULL DEFAULT '',
+  item_label   VARCHAR(100) NOT NULL DEFAULT 'la chanson',
+  has_creatoke TINYINT(1)   NOT NULL DEFAULT 0,
+  has_lyrics   TINYINT(1)   NOT NULL DEFAULT 1,
+  position     INT          NOT NULL DEFAULT 100,
+  created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO sections (slug, label, icon, description, item_label, has_creatoke, has_lyrics, position) VALUES
+ ('chansons-a-chanter', 'Chansons à chanter', 'ri-mic-line', 'Des chansons originales à interpréter, avec leur version créatoké pour chanter dessus.', 'la chanson à chanter', 1, 1, 10),
+ ('chansons-cherche-auteur', 'Chanson(s) cherche auteur', 'ri-quill-pen-line', 'Des chansons en quête d''auteur.', 'la chanson cherche auteur', 1, 1, 20),
+ ('instrumentaux', 'Instrumentaux', 'ri-music-2-line', 'Des compositions instrumentales originales.', 'l''instrumental', 0, 0, 30),
+ ('musique-de-contenus', 'Musique de contenus', 'ri-film-line', 'Des musiques pour habiller vos vidéos, podcasts et contenus.', 'la musique de contenu', 0, 0, 40),
+ ('creacourcis', 'Créacourcis', 'ri-flashlight-line', 'Des créations courtes et originales.', 'le créacourcis', 0, 1, 50),
+ ('virgules-sonores', 'Virgules sonores', 'ri-sound-module-line', 'De courtes signatures sonores pour ponctuer vos contenus.', 'la virgule sonore', 0, 1, 60);
+
+-- Historique des vidéos publiées sur les réseaux (page « Publier une vidéo » et
+-- assistant IA) : titre, texte, vidéo, résultat de chaque réseau.
+-- status : running (en cours, publication lancée en arrière-plan), done, failed.
+CREATE TABLE IF NOT EXISTS video_posts (
+  id          INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  title       VARCHAR(255)  NOT NULL DEFAULT '',
+  description TEXT          NULL,
+  video_url   VARCHAR(1024) NULL,
+  source      VARCHAR(16)   NOT NULL DEFAULT 'site',
+  status      VARCHAR(16)   NOT NULL DEFAULT 'running',
+  results     TEXT          NULL,
+  error       TEXT          NULL,
+  created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  finished_at DATETIME      NULL,
+  KEY idx_video_posts_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
