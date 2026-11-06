@@ -1,7 +1,7 @@
 // services/social/youtube.ts — envoi de la vidéo sur YouTube (Data API v3, envoi « resumable »)
 import axios from "axios";
 import fs from "node:fs";
-import { REQUEST_TIMEOUT_MS, UPLOAD_TIMEOUT_MS, truncate, type VideoPost } from "./common.ts";
+import { REQUEST_TIMEOUT_MS, UPLOAD_TIMEOUT_MS, textFor, truncate, type VideoPost } from "./common.ts";
 
 export function youtubeConfigured(): boolean {
   return Boolean(
@@ -45,7 +45,7 @@ export async function publishYoutube(post: VideoPost): Promise<{ url: string }> 
     {
       snippet: {
         title,
-        description: clean(post.description),
+        description: clean(textFor(post, "youtube")),
         categoryId: "10", // Musique
         defaultLanguage: "fr",
         defaultAudioLanguage: "fr",

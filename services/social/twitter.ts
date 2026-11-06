@@ -1,7 +1,7 @@
 // services/social/twitter.ts — post X (Twitter) avec le lien YouTube, signé en OAuth 1.0a
 import axios from "axios";
 import crypto from "node:crypto";
-import { REQUEST_TIMEOUT_MS, graphemes, type VideoPost } from "./common.ts";
+import { REQUEST_TIMEOUT_MS, graphemes, textFor, type VideoPost } from "./common.ts";
 
 const TWEETS_URL = "https://api.x.com/2/tweets";
 
@@ -78,8 +78,15 @@ function weight(grapheme: string): number {
   return light ? 1 : 2;
 }
 
+// Place laissée au texte : le lien YouTube et l'espace qui le précède sont ajoutés à la fin
+export const TWEET_TEXT_BUDGET = 280 - 23 - 1;
+
+export function tweetWeight(text: string): number {
+  return graphemes(text.trim()).reduce((sum, g) => sum + weight(g), 0);
+}
+
 export function tweetText(description: string, link: string): string {
-  const budget = 280 - 23 - 1; // lien + espace
+  const budget = TWEET_TEXT_BUDGET;
   let used = 0;
   let text = "";
   const parts = graphemes(description.trim());
@@ -99,7 +106,7 @@ export function tweetText(description: string, link: string): string {
 export async function publishTwitter(post: VideoPost, link: string): Promise<{ url: string }> {
   const { data } = await axios.post(
     TWEETS_URL,
-    { text: tweetText(post.description, link) },
+    { text: tweetText(textFor(post, "twitter"), link) },
     {
       headers: { Authorization: oauthHeader("POST", TWEETS_URL, twitterKeys()), "Content-Type": "application/json" },
       timeout: REQUEST_TIMEOUT_MS,

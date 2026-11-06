@@ -1,6 +1,6 @@
 // services/social/linkedin.ts — post LinkedIn partageant le lien YouTube (Posts API)
 import axios from "axios";
-import { REQUEST_TIMEOUT_MS, truncate, type VideoPost } from "./common.ts";
+import { REQUEST_TIMEOUT_MS, textFor, truncate, type VideoPost } from "./common.ts";
 
 // Version d'API LinkedIn (AAAAMM) : chaque version reste disponible environ un an
 const DEFAULT_VERSION = "202606";
@@ -17,19 +17,20 @@ export function littleText(text: string): string {
 }
 
 export async function publishLinkedin(post: VideoPost, link: string): Promise<{ url: string }> {
+  const text = textFor(post, "linkedin");
   try {
     const res = await axios.post(
       "https://api.linkedin.com/rest/posts",
       {
         author: process.env.LINKEDIN_AUTHOR_URN,
-        commentary: littleText(post.description),
+        commentary: littleText(text),
         visibility: "PUBLIC",
         distribution: { feedDistribution: "MAIN_FEED", targetEntities: [], thirdPartyDistributionChannels: [] },
         content: {
           article: {
             source: link,
             title: truncate(post.title || "Créatoke", 200),
-            description: truncate(post.description, 250),
+            description: truncate(text, 250),
           },
         },
         lifecycleState: "PUBLISHED",

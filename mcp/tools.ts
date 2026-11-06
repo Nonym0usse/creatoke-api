@@ -63,7 +63,8 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         "Outils de consultation, et outils d'action qui modifient le site ou envoient des e-mails : avant toute action, " +
         "récapitulez le changement et attendez l'accord explicite de l'utilisateur ; une seule suppression à la fois. " +
         "Pour une chanson avec fichiers, importez d'abord chaque fichier avec import_file. Les rubriques du site se lisent avec " +
-        "list_sections. Une vidéo se publie avec publish_video (en arrière-plan) et son résultat se lit avec list_video_posts. " +
+        "list_sections. Une vidéo se publie avec publish_video (en arrière-plan) et son résultat se lit avec list_video_posts ; " +
+        "proposez un texte adapté à chaque réseau (texts) et faites-les valider avant de publier. " +
         "Les montants sont en euros TTC. " +
         "Un « créatoké » est la version d'accompagnement d'une chanson, sans la voix principale. " +
         "Les ventes et les prospects contiennent des données personnelles : ne les citer que si c'est utile à la demande.",

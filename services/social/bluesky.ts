@@ -1,10 +1,11 @@
 // services/social/bluesky.ts — post Bluesky avec la vidéo intégrée (AT Protocol)
 import axios from "axios";
 import fs from "node:fs";
-import { REQUEST_TIMEOUT_MS, UPLOAD_TIMEOUT_MS, truncate, type VideoPost } from "./common.ts";
+import { REQUEST_TIMEOUT_MS, UPLOAD_TIMEOUT_MS, textFor, truncate, type VideoPost } from "./common.ts";
 
 // Limites Bluesky : 300 caractères par post, 100 Mo par vidéo
-const MAX_TEXT = 300;
+export const BLUESKY_MAX_TEXT = 300;
+const MAX_TEXT = BLUESKY_MAX_TEXT;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 export function blueskyConfigured(): boolean {
@@ -70,7 +71,7 @@ export async function publishBluesky(post: VideoPost): Promise<{ url: string }> 
     },
   );
 
-  const text = truncate(post.description, MAX_TEXT);
+  const text = truncate(textFor(post, "bluesky"), MAX_TEXT);
   const { data: record } = await axios.post(
     `${pdsUrl()}/xrpc/com.atproto.repo.createRecord`,
     {

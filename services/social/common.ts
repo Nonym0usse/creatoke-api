@@ -1,15 +1,23 @@
 // services/social/common.ts — types et utilitaires partagés par les réseaux sociaux
 import axios from "axios";
 
-export type NetworkId = "instagram" | "facebook" | "youtube" | "bluesky" | "linkedin" | "twitter";
+export const NETWORK_IDS = ["instagram", "facebook", "youtube", "bluesky", "linkedin", "twitter"] as const;
+export type NetworkId = (typeof NETWORK_IDS)[number];
 
-// Vidéo à publier : fichier compressé sur le disque + URL publique (Instagram et Facebook la téléchargent)
+// Vidéo à publier : fichier compressé sur le disque + URL publique (Instagram et Facebook la téléchargent).
+// `texts` remplace `description` pour les réseaux qui ont leur propre texte.
 export interface VideoPost {
   title: string;
   description: string;
+  texts?: Partial<Record<NetworkId, string>>;
   filePath: string;
   publicUrl: string;
   mimeType: string;
+}
+
+// Texte publié sur un réseau : son texte dédié s'il existe, sinon le texte commun
+export function textFor(post: VideoPost, network: NetworkId): string {
+  return post.texts?.[network]?.trim() || post.description;
 }
 
 export interface PublishResult {

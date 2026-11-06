@@ -14,6 +14,9 @@ import { importFileFromUrl } from "./import-file.ts";
 import { MCP_WRITE_SCOPE } from "./oauth.ts";
 import path from "node:path";
 import { networkStatus, publishVideo } from "../services/social/publish.ts";
+import { NETWORK_IDS, graphemes, textFor, type NetworkId } from "../services/social/common.ts";
+import { BLUESKY_MAX_TEXT } from "../services/social/bluesky.ts";
+import { TWEET_TEXT_BUDGET, tweetWeight } from "../services/social/twitter.ts";
 import { finishVideoPost, listVideoPosts, startVideoPost } from "../services/social/history.ts";
 import { videoCompress } from "../utils/videoCompress.ts";
 import { UPLOAD_DIR, buildPublicUrl } from "../services/storage.ts";
@@ -425,27 +428,115 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
     instagram: "Instagram (Reel)", facebook: "Facebook", youtube: "YouTube", bluesky: "Bluesky", linkedin: "LinkedIn", twitter: "X (Twitter)",
   };
 
+  // Limites des textes par réseau : un texte trop long est refusé (plutôt que coupé) pour que l'assistant le réécrive
+  const textProblem = (network: NetworkId, text: string): string | null => {
+    const name = NETWORK_NAMES[network];
+    const length = graphemes(text).length;
+    switch (network) {
+      case "instagram": {
+        const hashtags = text.match(/(^|\s)#[\p{L}\p{N}_]+/gu)?.length ?? 0;
+        if (length > 2200) return `${name} : ${length} caractères, 2 200 maximum.`;
+        if (hashtags > 30) return `${name} : ${hashtags} hashtags, 30 maximum.`;
+        return null;
+      }
+      case "youtube": {
+        const bytes = Buffer.byteLength(text.replace(/[<>]/g, ""), "utf8");
+        return bytes > 5000 ? `${name} : texte trop long (${bytes} octets, 5 000 maximum ; un accent ou un emoji compte pour plusieurs octets).` : null;
+      }
+      case "bluesky":
+        return length > BLUESKY_MAX_TEXT ? `${name} : ${length} caractères, ${BLUESKY_MAX_TEXT} maximum.` : null;
+      case "twitter": {
+        const weight = tweetWeight(text);
+        return weight > TWEET_TEXT_BUDGET
+          ? `${name} : ${weight} caractères décomptés (un emoji compte double), ${TWEET_TEXT_BUDGET} maximum car le lien YouTube est ajouté à la fin.`
+          : null;
+      }
+      case "linkedin":
+        return length > 3000 ? `${name} : ${length} caractères, 3 000 maximum.` : null;
+      case "facebook":
+        return length > 5000 ? `${name} : ${length} caractères, 5 000 maximum.` : null;
+    }
+  };
+
+  const networkText = (network: string) => z.string().max(10000).optional().describe(network);
+
   action(
     "publish_video",
     {
       title: "Publier une vidéo sur les réseaux",
       description:
-        "Publie une vidéo sur tous les réseaux sociaux configurés (Instagram, Facebook, YouTube, Bluesky ; LinkedIn et X " +
+        "Publie une vidéo sur les réseaux sociaux configurés (Instagram, Facebook, YouTube, Bluesky ; LinkedIn et X " +
         "partagent ensuite le lien YouTube), comme la page « Publier une vidéo ». La vidéo est téléchargée depuis un lien de " +
         "partage (Google Drive, Dropbox ou lien direct, 512 Mo maximum), compressée puis publiée en arrière-plan : la réponse " +
         "arrive tout de suite, le résultat de chaque réseau quelques minutes plus tard avec list_video_posts. La publication est " +
-        "publique et ne peut pas être annulée d'ici. Description : 280 caractères maximum, hashtags compris." + CONFIRM,
+        "publique et ne peut pas être annulée d'ici. " +
+        "Par défaut, tous les réseaux configurés reçoivent le même texte (description, coupée à 280 caractères). Adaptez plutôt " +
+        "le texte à chaque réseau avec texts : description YouTube complète et référencée (5 000 octets), légende Instagram avec " +
+        "hashtags (2 200 caractères, 30 hashtags), ton professionnel pour LinkedIn (3 000), texte court pour Bluesky (300) et " +
+        "X (256, un emoji compte double, le lien YouTube est ajouté automatiquement), Facebook (5 000). Un texte trop long est " +
+        "refusé. networks limite la publication à certains réseaux ; LinkedIn et X exigent YouTube. Montrez à l'utilisateur " +
+        "chaque texte et la liste des réseaux avant de publier." + CONFIRM,
       inputSchema: {
         video_link: z.string().url().describe("Lien vers la vidéo (https)"),
-        title: z.string().min(1).max(100).describe("Titre (utilisé par YouTube)"),
-        description: z.string().min(1).max(2000).describe("Texte de la publication, hashtags compris (coupé à 280 caractères)"),
+        title: z.string().min(1).max(100).describe("Titre (utilisé par YouTube, Facebook et l'aperçu LinkedIn)"),
+        description: z
+          .string()
+          .min(1)
+          .max(2000)
+          .describe("Texte commun, hashtags compris (coupé à 280 caractères) : utilisé pour les réseaux sans texte dédié et dans l'historique"),
+        texts: z
+          .object({
+            instagram: networkText("Légende du Reel Instagram"),
+            facebook: networkText("Description de la vidéo Facebook"),
+            youtube: networkText("Description YouTube"),
+            bluesky: networkText("Texte du post Bluesky"),
+            linkedin: networkText("Texte du post LinkedIn (le lien YouTube est joint en aperçu)"),
+            twitter: networkText("Texte du post X, sans le lien YouTube (ajouté automatiquement)"),
+          })
+          .strict()
+          .optional()
+          .describe("Texte dédié à chaque réseau (facultatif, réseau par réseau)"),
+        networks: z
+          .array(z.enum(NETWORK_IDS))
+          .min(1)
+          .optional()
+          .describe("Réseaux à utiliser (tous les réseaux configurés par défaut)"),
       },
       annotations: { ...WRITE, openWorldHint: true },
     },
-    async ({ video_link, title, description }) => {
-      const networks = networkStatus().filter((n) => n.configured).map((n) => NETWORK_NAMES[n.id] ?? n.id);
-      if (!networks.length) throw new ActionError("Aucun réseau social n'est configuré sur le serveur.");
+    async ({ video_link, title, description, texts, networks }) => {
+      const configured = networkStatus().filter((n) => n.configured).map((n) => n.id);
+      if (!configured.length) throw new ActionError("Aucun réseau social n'est configuré sur le serveur.");
+      const names = (ids: readonly string[]) => ids.map((id) => NETWORK_NAMES[id] ?? id).join(", ");
+
+      const targets = networks ? NETWORK_IDS.filter((id) => networks.includes(id)) : configured;
+      const missing = targets.filter((id) => !configured.includes(id));
+      if (missing.length) {
+        throw new ActionError(`Non configuré sur le serveur : ${names(missing)}. Réseaux disponibles : ${names(configured)}.`);
+      }
+      const sharing = targets.filter((id) => id === "linkedin" || id === "twitter");
+      if (sharing.length && !targets.includes("youtube")) {
+        const verb = sharing.length > 1 ? "partagent" : "partage";
+        throw new ActionError(`${names(sharing)} ${verb} le lien de la vidéo YouTube : ajoutez YouTube aux réseaux ou retirez ${names(sharing)}.`);
+      }
+
+      const dedicated: Partial<Record<NetworkId, string>> = {};
+      const problems: string[] = [];
+      for (const id of NETWORK_IDS) {
+        const value = texts?.[id]?.trim();
+        if (!value) continue;
+        if (!targets.includes(id)) {
+          problems.push(`Un texte est prévu pour ${NETWORK_NAMES[id]}, qui ne fait pas partie des réseaux choisis.`);
+          continue;
+        }
+        const problem = textProblem(id, value);
+        if (problem) problems.push(problem);
+        dedicated[id] = value;
+      }
+      if (problems.length) throw new ActionError(`Rien n'a été publié. ${problems.join(" ")}`);
+
       const text = Array.from(description.trim()).slice(0, 280).join("");
+      const preview = { title, description: text, texts: dedicated, filePath: "", publicUrl: "", mimeType: "" };
 
       // Le téléchargement se fait tout de suite (lien invalide = erreur immédiate),
       // la compression et la publication ensuite, en arrière-plan.
@@ -466,7 +557,10 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
         }
         const publicUrl = buildPublicUrl(null, compressedName);
         if (!publicUrl) throw new Error("Adresse publique des fichiers non configurée.");
-        const results = await publishVideo({ title: title.trim(), description: text, filePath: compressedPath, publicUrl, mimeType: "video/mp4" });
+        const results = await publishVideo(
+          { title: title.trim(), description: text, texts: dedicated, filePath: compressedPath, publicUrl, mimeType: "video/mp4" },
+          targets,
+        );
         await finishVideoPost(postId, { videoUrl: publicUrl, results });
       })().catch(async (error) => {
         console.error("[social] publication assistant :", error instanceof Error ? error.message : error);
@@ -476,8 +570,13 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
       return {
         message: "Vidéo reçue : compression et publication en cours. Le résultat de chaque réseau sera visible dans quelques minutes (list_video_posts).",
         publication: postId,
-        reseaux: networks,
-        texte_publie: text,
+        reseaux: targets.map((id) => NETWORK_NAMES[id] ?? id),
+        textes_publies: Object.fromEntries(
+          targets.map((id) => [
+            NETWORK_NAMES[id] ?? id,
+            id === "twitter" || id === "linkedin" ? `${textFor(preview, id)} (+ lien YouTube)` : textFor(preview, id),
+          ]),
+        ),
       };
     },
   );

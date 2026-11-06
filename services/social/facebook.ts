@@ -1,6 +1,6 @@
 // services/social/facebook.ts — vidéo publiée sur la Page Facebook (Graph API)
 import axios from "axios";
-import { UPLOAD_TIMEOUT_MS, truncate, type VideoPost } from "./common.ts";
+import { UPLOAD_TIMEOUT_MS, textFor, truncate, type VideoPost } from "./common.ts";
 
 const GRAPH_VIDEO = "https://graph-video.facebook.com/v23.0";
 
@@ -21,7 +21,7 @@ export async function publishFacebook(post: VideoPost): Promise<{ url: string }>
   const body = new URLSearchParams({
     file_url: post.publicUrl,
     title: truncate(post.title, 255),
-    description: post.description,
+    description: textFor(post, "facebook"),
     published: "true",
     access_token: facebookToken() as string,
   });

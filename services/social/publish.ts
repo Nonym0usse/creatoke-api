@@ -3,7 +3,8 @@
 // Instagram, Facebook, YouTube et Bluesky reçoivent la vidéo en parallèle.
 // LinkedIn et X partagent ensuite le lien de la vidéo YouTube.
 // L'échec d'un réseau n'empêche pas la publication sur les autres.
-import { errorMessage, type NetworkId, type PublishResult, type VideoPost } from "./common.ts";
+// `only` limite la publication à certains réseaux (tous les réseaux configurés sinon).
+import { errorMessage, textFor, type NetworkId, type PublishResult, type VideoPost } from "./common.ts";
 import { Instagram } from "./instagram.ts";
 import { blueskyConfigured, publishBluesky } from "./bluesky.ts";
 import { facebookConfigured, publishFacebook } from "./facebook.ts";
@@ -30,26 +31,28 @@ export function networkStatus(): { id: NetworkId; configured: boolean }[] {
 
 const isConfigured = (network: NetworkId) => Boolean(NETWORKS.find((n) => n.id === network)?.configured());
 
-async function run(
-  network: NetworkId,
-  publish: () => Promise<{ url?: string }>,
-): Promise<PublishResult> {
-  if (!isConfigured(network)) {
-    return { network, status: "skipped", message: "Réseau non configuré." };
-  }
-  try {
-    const { url } = await publish();
-    return { network, status: "ok", url };
-  } catch (error) {
-    const message = errorMessage(error);
-    console.error(`[social] ${network} :`, message);
-    return { network, status: "error", message };
-  }
-}
+export async function publishVideo(post: VideoPost, only?: NetworkId[]): Promise<PublishResult[]> {
+  const selected = (network: NetworkId) => !only || only.includes(network);
 
-export async function publishVideo(post: VideoPost): Promise<PublishResult[]> {
+  const run = async (network: NetworkId, publish: () => Promise<{ url?: string }>): Promise<PublishResult> => {
+    if (!selected(network)) {
+      return { network, status: "skipped", message: "Réseau non retenu pour cette publication." };
+    }
+    if (!isConfigured(network)) {
+      return { network, status: "skipped", message: "Réseau non configuré." };
+    }
+    try {
+      const { url } = await publish();
+      return { network, status: "ok", url };
+    } catch (error) {
+      const message = errorMessage(error);
+      console.error(`[social] ${network} :`, message);
+      return { network, status: "error", message };
+    }
+  };
+
   const instagram = run("instagram", async () => {
-    const reel = await new Instagram().publishReel(post.description, post.publicUrl);
+    const reel = await new Instagram().publishReel(textFor(post, "instagram"), post.publicUrl);
     return { url: reel.permalink };
   });
   const facebook = run("facebook", () => publishFacebook(post));
@@ -60,6 +63,7 @@ export async function publishVideo(post: VideoPost): Promise<PublishResult[]> {
   const shareLink = (network: NetworkId, publish: (link: string) => Promise<{ url: string }>) =>
     youtube.then((yt): Promise<PublishResult> | PublishResult => {
       if (yt.status === "ok" && yt.url) return run(network, () => publish(yt.url as string));
+      if (!selected(network)) return { network, status: "skipped", message: "Réseau non retenu pour cette publication." };
       return isConfigured(network)
         ? { network, status: "skipped", message: "Pas de lien YouTube à partager." }
         : { network, status: "skipped", message: "Réseau non configuré." };
