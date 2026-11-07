@@ -8,7 +8,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { pool } from "./mysql.ts";
 
-const AUTO_MIGRATIONS = ["2026-11-07-monthly-reports.sql", "2026-11-07-contact-messages.sql"];
+const AUTO_MIGRATIONS = [
+  "2026-11-07-monthly-reports.sql",
+  "2026-11-07-contact-messages.sql",
+  "2026-11-07-password-resets.sql",
+];
 
 export async function ensureTables(): Promise<void> {
   for (const file of AUTO_MIGRATIONS) {

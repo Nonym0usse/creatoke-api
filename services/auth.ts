@@ -54,18 +54,36 @@ function secret(): string {
   return value;
 }
 
-export function signToken(user: AuthUser): string {
-  return jwt.sign({ email: user.email }, secret(), {
+/**
+ * Empreinte courte du mot de passe enregistré, glissée dans le jeton de session :
+ * dès que le mot de passe change, les sessions ouvertes avant ne sont plus acceptées.
+ */
+export function passwordVersion(passwordHash: string): string {
+  return crypto.createHash("sha256").update(passwordHash).digest("hex").slice(0, 16);
+}
+
+export function signToken(user: AuthUser, passwordHash: string): string {
+  return jwt.sign({ email: user.email, pv: passwordVersion(passwordHash) }, secret(), {
     algorithm: "HS256",
     subject: user.uid,
     expiresIn: TOKEN_TTL,
   });
 }
 
-export function verifyToken(token: string): AuthUser {
+export interface TokenClaims extends AuthUser {
+  pv?: string; // empreinte du mot de passe (absente des jetons émis avant le 7 novembre 2026)
+  iat?: number;
+}
+
+export function verifyToken(token: string): TokenClaims {
   const payload = jwt.verify(token, secret(), { algorithms: ["HS256"] });
   if (typeof payload === "string" || !payload.sub) throw new Error("INVALID_TOKEN");
-  return { uid: payload.sub, email: String(payload.email ?? "") };
+  return {
+    uid: payload.sub,
+    email: String(payload.email ?? ""),
+    ...(typeof payload.pv === "string" ? { pv: payload.pv } : {}),
+    ...(typeof payload.iat === "number" ? { iat: payload.iat } : {}),
+  };
 }
 
 // Limite les essais de connexion : 10 échecs par email ou par IP sur 15 minutes.
