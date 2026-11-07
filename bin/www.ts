@@ -8,6 +8,7 @@ import createDebug from "debug";
 import app from "../app.ts";
 import { startProspectSequenceJob } from "../jobs/prospectSequence.ts";
 import { startMonthlyReportJob } from "../jobs/monthlyReport.ts";
+import { ensureTables } from "../database/ensureTables.ts";
 
 const debug = createDebug("creatoke-api:server");
 
@@ -26,9 +27,11 @@ server.listen(port);
 server.on("error", onError);
 server.on("listening", onListening);
 
-// Relances éditeurs et bilan mensuel : jobs démarrés avec le serveur.
-startProspectSequenceJob();
-startMonthlyReportJob();
+// Tables récentes créées si besoin, puis relances éditeurs et bilan mensuel.
+void ensureTables().finally(() => {
+  startProspectSequenceJob();
+  startMonthlyReportJob();
+});
 
 /**
  * Normalize a port into a number, string, or false.
