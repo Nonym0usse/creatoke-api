@@ -14,7 +14,7 @@ import { importFileFromUrl } from "./import-file.ts";
 import { MCP_WRITE_SCOPE } from "./oauth.ts";
 import path from "node:path";
 import { networkStatus } from "../services/social/uploadPost.ts";
-import { NETWORK_IDS, NETWORK_NAMES, fitText, textFor, textProblem, type NetworkId } from "../services/social/common.ts";
+import { NETWORK_IDS, NETWORK_NAMES, SongLinkError, publishedText, songLink, textProblem, type NetworkId } from "../services/social/common.ts";
 import { listVideoPosts } from "../services/social/history.ts";
 import { startPublication } from "../services/social/publishJob.ts";
 import { setHandled } from "../services/contactMessages.ts";
@@ -441,7 +441,9 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
         "le texte à chaque réseau avec texts : description YouTube complète et référencée (5 000 octets), légende Instagram avec " +
         "hashtags (2 200 caractères, 30 hashtags), TikTok (2 200), ton professionnel pour LinkedIn (3 000), Facebook (5 000), " +
         "texte court pour X (280, un emoji compte double ; les liens sont retirés par X), Bluesky (300) et Threads (500 octets). " +
-        "Un texte trop long est refusé. networks limite la publication à certains réseaux. Montrez à l'utilisateur chaque " +
+        "Un texte trop long est refusé. networks limite la publication à certains réseaux. song_link (facultatif, seulement si " +
+        "l'utilisateur le demande) ajoute à la fin de chaque texte le lien d'une fiche chanson du site, qui ouvre la prise de " +
+        "rendez-vous Calendly (23 caractères comptés sur X) ; prévoyez sa place dans les textes. Montrez à l'utilisateur chaque " +
         "texte et la liste des réseaux avant de publier." + CONFIRM,
       inputSchema: {
         video_link: z.string().url().describe("Lien vers la vidéo (https)"),
@@ -470,10 +472,22 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
           .min(1)
           .optional()
           .describe("Réseaux à utiliser (tous les réseaux connectés par défaut)"),
+        song_link: z
+          .string()
+          .url()
+          .optional()
+          .describe("Lien d'une fiche chanson du site (https://creatoke.com/song/…), ajouté à la fin de chaque texte avec la prise de rendez-vous Calendly"),
       },
       annotations: { ...WRITE, openWorldHint: true },
     },
-    async ({ video_link, title, description, texts, networks }) => {
+    async ({ video_link, title, description, texts, networks, song_link }) => {
+      let link: string | undefined;
+      try {
+        link = songLink(song_link);
+      } catch (error) {
+        throw new ActionError(error instanceof SongLinkError ? error.message : "Lien de chanson invalide.");
+      }
+      const suffix = link ? `\n\n${link}` : "";
       const statuses = await networkStatus().catch((error) => {
         throw new ActionError(error instanceof Error ? error.message : String(error));
       });
@@ -494,7 +508,7 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
         const value = texts?.[id]?.trim();
         if (!value) continue;
         dedicated[id] = value;
-        const problem = textProblem(id, value);
+        const problem = textProblem(id, value + suffix);
         if (problem) problems.push(problem);
       }
       for (const id of NETWORK_IDS) {
@@ -513,6 +527,7 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
         title: title.trim(),
         description: text,
         texts: dedicated,
+        link,
         networks: targets,
         source: "assistant",
       });
@@ -522,7 +537,7 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
         publication: postId,
         reseaux: targets.map(networkName),
         textes_publies: Object.fromEntries(
-          targets.map((id) => [networkName(id), fitText(id, textFor({ description: text, texts: dedicated }, id))]),
+          targets.map((id) => [networkName(id), publishedText({ description: text, texts: dedicated, link }, id)]),
         ),
       };
     },

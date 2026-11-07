@@ -15,12 +15,15 @@ export interface PublicationRequest {
   title: string;
   description: string;
   texts?: Partial<Record<NetworkId, string>>;
+  link?: string; // lien de chanson déjà vérifié (songLink)
   networks?: NetworkId[];
   source: VideoSource;
 }
 
 export async function startPublication(request: PublicationRequest): Promise<number> {
-  const postId = await startVideoPost({ title: request.title, description: request.description, source: request.source });
+  // L'historique garde le lien avec le texte (visible par l'assistant IA)
+  const description = request.link ? `${request.description}\n\n${request.link}` : request.description;
+  const postId = await startVideoPost({ title: request.title, description, source: request.source });
   void runPublication(postId, request);
   return postId;
 }
@@ -36,7 +39,7 @@ async function runPublication(postId: number, request: PublicationRequest): Prom
       await fs.promises.unlink(request.sourcePath).catch(() => undefined);
     }
     const results = await publishVideo(
-      { title: request.title, description: request.description, texts: request.texts, filePath: compressedPath },
+      { title: request.title, description: request.description, texts: request.texts, link: request.link, filePath: compressedPath },
       request.networks,
       `video-post-${postId}`,
     );

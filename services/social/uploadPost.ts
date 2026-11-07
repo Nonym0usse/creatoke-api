@@ -9,7 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { NETWORK_IDS, fitText, textFor, truncate, type NetworkId, type PublishResult, type VideoPost } from "./common.ts";
+import { NETWORK_IDS, publishedText, truncate, type NetworkId, type PublishResult, type VideoPost } from "./common.ts";
 
 const API = "https://api.upload-post.com/api";
 const REQUEST_TIMEOUT_MS = 60 * 1000;
@@ -125,7 +125,7 @@ function formFor(post: VideoPost, networks: NetworkId[], user: string, requestId
   form.append("external_id", externalId);
 
   for (const id of networks) {
-    const text = fitText(id, textFor(post, id));
+    const text = publishedText(post, id);
     switch (id) {
       case "youtube":
         form.append("youtube_title", truncate(post.title, 100));

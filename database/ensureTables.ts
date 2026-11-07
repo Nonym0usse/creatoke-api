@@ -12,6 +12,8 @@ const AUTO_MIGRATIONS = [
   "2026-11-07-monthly-reports.sql",
   "2026-11-07-contact-messages.sql",
   "2026-11-07-password-resets.sql",
+  "2026-11-07-site-visit-days.sql",
+  "2026-11-07-site-visit-months.sql",
 ];
 
 export async function ensureTables(): Promise<void> {

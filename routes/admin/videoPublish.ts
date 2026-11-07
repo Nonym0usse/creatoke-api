@@ -7,7 +7,7 @@ import crypto from "node:crypto";
 import { networkStatus } from "../../services/social/uploadPost.ts";
 import { startPublication } from "../../services/social/publishJob.ts";
 import { getVideoPost } from "../../services/social/history.ts";
-import { NETWORK_IDS, type NetworkId } from "../../services/social/common.ts";
+import { NETWORK_IDS, SongLinkError, songLink, type NetworkId } from "../../services/social/common.ts";
 import { UPLOAD_DIR } from "../../services/storage.ts";
 import verifyTokenMiddleware from "../../database/auth.ts";
 
@@ -78,9 +78,24 @@ router.post("/publish", verifyTokenMiddleware, upload.single("video"), async (re
     await fs.promises.unlink(sourcePath).catch(() => {});
     return res.status(400).json({ status: "error", message: "Aucun réseau valide choisi." });
   }
+  let link: string | undefined;
+  try {
+    link = songLink(req.body?.link);
+  } catch (error) {
+    await fs.promises.unlink(sourcePath).catch(() => {});
+    const message = error instanceof SongLinkError ? error.message : "Lien de chanson invalide.";
+    return res.status(400).json({ status: "error", message });
+  }
 
   try {
-    const id = await startPublication({ sourcePath, title, description, networks: networks.length ? networks : undefined, source: "site" });
+    const id = await startPublication({
+      sourcePath,
+      title,
+      description,
+      link,
+      networks: networks.length ? networks : undefined,
+      source: "site",
+    });
     return res.status(202).json({ status: "running", id });
   } catch (error) {
     await fs.promises.unlink(sourcePath).catch(() => {});
