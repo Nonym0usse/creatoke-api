@@ -143,7 +143,9 @@ function formFor(post: VideoPost, networks: NetworkId[], user: string, requestId
       case "linkedin":
         form.append("linkedin_title", truncate(post.title, 200));
         form.append("linkedin_description", text);
-        if (process.env.UPLOAD_POST_LINKEDIN_PAGE_ID) form.append("target_linkedin_page_id", process.env.UPLOAD_POST_LINKEDIN_PAGE_ID);
+        // Page entreprise : identifiant numérique (le format urn:li:organization:… est accepté aussi)
+        const linkedinPage = process.env.UPLOAD_POST_LINKEDIN_PAGE_ID?.trim().replace(/^urn:li:organization:/, "");
+        if (linkedinPage) form.append("target_linkedin_page_id", linkedinPage);
         break;
       default:
         form.append(`${PLATFORM[id]}_title`, text);
