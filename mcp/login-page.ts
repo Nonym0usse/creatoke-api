@@ -59,7 +59,7 @@ export function renderLoginPage({ client, params, email, error }: LoginPageInput
   <h1>Connecter ${escape(appName)} à Créatoké</h1>
   <p><strong>${escape(appName)}</strong> demande l'accès à Créatoké. Il pourra :</p>
   <ul>
-    <li>consulter le catalogue, les ventes, les factures, les prospects et les vidéos publiées ;</li>
+    <li>consulter le catalogue, les ventes, les factures, les prospects, les messages de contact et les vidéos publiées ;</li>
     <li>avec <strong>votre accord à chaque fois</strong> : ajouter, modifier ou supprimer des chansons et des rubriques,
       modifier les licences, le texte d'accueil et l'image de fond, publier des vidéos sur les réseaux sociaux, gérer les
       prospects et leur envoyer des e-mails, modérer les commentaires.</li>

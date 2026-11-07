@@ -7,6 +7,7 @@ import {
 } from "./shared.ts";
 import { registerActions, type McpContext } from "./actions.ts";
 import { SITE_URL } from "./shared.ts";
+import { listContactMessages } from "../services/contactMessages.ts";
 
 // Outils de consultation du connecteur MCP (les actions sont dans actions.ts).
 
@@ -67,7 +68,8 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         "proposez un texte adapté à chaque réseau (texts) et faites-les valider avant de publier. " +
         "Les montants sont en euros TTC. " +
         "Un « créatoké » est la version d'accompagnement d'une chanson, sans la voix principale. " +
-        "Les ventes et les prospects contiennent des données personnelles : ne les citer que si c'est utile à la demande.",
+        "Les ventes, les prospects et les messages de contact contiennent des données personnelles : ne les citer que si c'est " +
+        "utile à la demande.",
     },
   );
 
@@ -322,6 +324,42 @@ export function buildMcpServer(ctx: McpContext): McpServer {
         [...params, limit ?? 50],
       );
       return json({ nombre: rows.length, prospects: rows.map(prospectSummary) });
+    },
+  );
+
+  server.registerTool(
+    "list_contact_messages",
+    {
+      title: "Messages du formulaire de contact",
+      description:
+        "Messages envoyés par les visiteurs depuis le formulaire de contact du site (nom, e-mail, téléphone, message), du plus " +
+        "récent au plus ancien, avec leur état (traité ou non). Filtres : derniers N jours, seulement les non traités, recherche. " +
+        "Exemples : « Résume les demandes reçues cette semaine » → days: 7 ; « Quels messages restent à traiter ? » → " +
+        "unhandled_only: true. Les messages reçus avant la mise en service de cet outil (novembre 2026) n'ont pas été enregistrés.",
+      inputSchema: {
+        days: z.number().int().min(1).max(1100).optional().describe("Seulement les messages des N derniers jours"),
+        unhandled_only: z.boolean().optional().describe("Seulement les messages pas encore marqués comme traités"),
+        search: z.string().min(1).optional().describe("Nom, e-mail ou mot du message (même partiel)"),
+        limit: z.number().int().min(1).max(200).optional().describe("Nombre maximum (30 par défaut)"),
+      },
+      annotations: { title: "Messages du formulaire de contact", ...READ_ONLY },
+    },
+    async ({ days, unhandled_only, search, limit }) => {
+      const rows = await listContactMessages({ days, unhandledOnly: unhandled_only, search, limit });
+      const paris = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
+      return json({
+        nombre: rows.length,
+        messages: rows.map((m) => ({
+          id: m.id,
+          date: paris(m.created_at),
+          nom: m.name,
+          email: m.email,
+          telephone: m.tel,
+          message: m.message,
+          traite: m.handled_at ? `oui, le ${paris(m.handled_at)}` : "non",
+          ...(m.email_status === "failed" ? { alerte: "la copie par e-mail à l'équipe n'est pas partie" } : {}),
+        })),
+      });
     },
   );
 

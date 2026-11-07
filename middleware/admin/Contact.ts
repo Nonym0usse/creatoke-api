@@ -6,6 +6,7 @@ import {
   renderEmailTemplate,
   logoBase64,
 } from "../../services/mailer.ts";
+import { purgeOldContactMessages, saveContactMessage, setEmailStatus } from "../../services/contactMessages.ts";
 
 export interface ContactData {
   email?: string;
@@ -26,6 +27,20 @@ export class Contact {
     }
     if (!validator.isEmail(String(data.email))) throw new Error("INVALID_EMAIL");
 
+    // Enregistré pour l'assistant IA ; un problème de base de données ne bloque jamais l'e-mail.
+    const savedId = await saveContactMessage({
+      name: String(data.name),
+      email: String(data.email),
+      tel: String(data.tel),
+      message: String(data.message),
+    }).catch((error) => {
+      console.error("[contact] enregistrement du message :", error instanceof Error ? error.message : error);
+      return null;
+    });
+    void purgeOldContactMessages().catch(() => undefined);
+    const markEmail = (status: "sent" | "failed") =>
+      savedId ? setEmailStatus(savedId, status).catch(() => undefined) : Promise.resolve();
+
     const emailHtml = await renderEmailTemplate("templates/contact.ejs", {
       image: await logoBase64(),
       name: String(data.name),
@@ -35,10 +50,16 @@ export class Contact {
     });
 
     // Envoyé à l'équipe ; « Répondre » écrit directement au visiteur.
-    await transporter.sendMail({
-      ...mailOptions(CONTACT_TO, `CREATOKE : ✉️ Nouveau message de ${String(data.name)}`, emailHtml),
-      replyTo: String(data.email),
-    });
+    try {
+      await transporter.sendMail({
+        ...mailOptions(CONTACT_TO, `CREATOKE : ✉️ Nouveau message de ${String(data.name)}`, emailHtml),
+        replyTo: String(data.email),
+      });
+    } catch (error) {
+      await markEmail("failed");
+      throw error;
+    }
+    await markEmail("sent");
     return "Merci, votre message a été envoyé";
   }
 }

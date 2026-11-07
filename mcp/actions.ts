@@ -19,6 +19,7 @@ import { BLUESKY_MAX_TEXT } from "../services/social/bluesky.ts";
 import { TWEET_TEXT_BUDGET, tweetWeight } from "../services/social/twitter.ts";
 import { finishVideoPost, listVideoPosts, startVideoPost } from "../services/social/history.ts";
 import { videoCompress } from "../utils/videoCompress.ts";
+import { setHandled } from "../services/contactMessages.ts";
 import { ofPeriod, periodKey, periodLabel, previousMonth, sendMonthlyReport } from "../services/monthlyReport.ts";
 import { UPLOAD_DIR, buildPublicUrl } from "../services/storage.ts";
 import { findProspect, findSong, plain, sectionOf, sectionSlugs, songDetails, songUrl, SITE_URL } from "./shared.ts";
@@ -825,6 +826,33 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
       }
       if (outcome.status !== "sent") throw new ActionError("Le bilan n'a pas pu être envoyé.");
       return { message: `Bilan ${ofPeriod(period)} envoyé.`, objet: outcome.subject, destinataires: outcome.recipients };
+    },
+  );
+
+  // ---------------- Messages de contact ----------------
+
+  action(
+    "mark_contact_messages_handled",
+    {
+      title: "Marquer des messages comme traités",
+      description:
+        "Marque des messages du formulaire de contact comme traités (ou de nouveau à traiter avec handled: false), d'après " +
+        "leur id donné par list_contact_messages. Ne répond pas au visiteur : la réponse se fait par e-mail.",
+      inputSchema: {
+        ids: z.array(z.number().int().positive()).min(1).max(100).describe("Identifiants des messages"),
+        handled: z.boolean().optional().describe("true (par défaut) : traité ; false : à traiter"),
+      },
+      annotations: { ...WRITE, idempotentHint: true },
+    },
+    async ({ ids, handled }) => {
+      const wanted = Array.from(new Set(ids));
+      const done = await setHandled(wanted, handled ?? true);
+      const missing = wanted.filter((id) => !done.includes(id));
+      if (!done.length) throw new ActionError(`Aucun message trouvé (id ${missing.join(", ")}).`);
+      return {
+        message: `${done.length} message${done.length > 1 ? "s" : ""} marqué${done.length > 1 ? "s" : ""} comme ${handled === false ? "à traiter" : "traité" + (done.length > 1 ? "s" : "")}.`,
+        ...(missing.length ? { introuvables: missing } : {}),
+      };
     },
   );
 
