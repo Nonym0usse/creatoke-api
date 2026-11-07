@@ -42,21 +42,13 @@ export async function finishVideoPost(id: number, outcome: { videoUrl?: string; 
   );
 }
 
-/** Enregistrement d'une publication déjà terminée (page du site, qui attend la fin). */
-export async function recordVideoPost(post: {
-  title: string;
-  description: string;
-  source: VideoSource;
-  videoUrl?: string;
-  results?: PublishResult[];
-  error?: string;
-}): Promise<void> {
-  const id = await startVideoPost(post);
-  await finishVideoPost(id, post);
-}
-
 export async function listVideoPosts(limit = 20): Promise<VideoPostRow[]> {
   return selectRows<VideoPostRow & { id: string }>("SELECT * FROM video_posts ORDER BY id DESC LIMIT ?", [limit]) as unknown as Promise<
     VideoPostRow[]
   >;
+}
+
+export async function getVideoPost(id: number): Promise<VideoPostRow | null> {
+  const rows = (await selectRows("SELECT * FROM video_posts WHERE id = ?", [id])) as unknown as VideoPostRow[];
+  return rows[0] ?? null;
 }

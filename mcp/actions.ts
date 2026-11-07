@@ -13,15 +13,13 @@ import { Comment } from "../middleware/admin/Comment.ts";
 import { importFileFromUrl } from "./import-file.ts";
 import { MCP_WRITE_SCOPE } from "./oauth.ts";
 import path from "node:path";
-import { networkStatus, publishVideo } from "../services/social/publish.ts";
-import { NETWORK_IDS, graphemes, textFor, type NetworkId } from "../services/social/common.ts";
-import { BLUESKY_MAX_TEXT } from "../services/social/bluesky.ts";
-import { TWEET_TEXT_BUDGET, tweetWeight } from "../services/social/twitter.ts";
-import { finishVideoPost, listVideoPosts, startVideoPost } from "../services/social/history.ts";
-import { videoCompress } from "../utils/videoCompress.ts";
+import { networkStatus } from "../services/social/uploadPost.ts";
+import { NETWORK_IDS, NETWORK_NAMES, fitText, textFor, textProblem, type NetworkId } from "../services/social/common.ts";
+import { listVideoPosts } from "../services/social/history.ts";
+import { startPublication } from "../services/social/publishJob.ts";
 import { setHandled } from "../services/contactMessages.ts";
 import { ofPeriod, periodKey, periodLabel, previousMonth, sendMonthlyReport } from "../services/monthlyReport.ts";
-import { UPLOAD_DIR, buildPublicUrl } from "../services/storage.ts";
+import { UPLOAD_DIR } from "../services/storage.ts";
 import { findProspect, findSong, plain, sectionOf, sectionSlugs, songDetails, songUrl, SITE_URL } from "./shared.ts";
 import { SECTION_ERRORS, Sections } from "../middleware/admin/Sections.ts";
 
@@ -426,40 +424,7 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
 
   // ---------------- Vidéos et réseaux sociaux ----------------
 
-  const NETWORK_NAMES: Record<string, string> = {
-    instagram: "Instagram (Reel)", facebook: "Facebook", youtube: "YouTube", bluesky: "Bluesky", linkedin: "LinkedIn", twitter: "X (Twitter)",
-  };
-
-  // Limites des textes par réseau : un texte trop long est refusé (plutôt que coupé) pour que l'assistant le réécrive
-  const textProblem = (network: NetworkId, text: string): string | null => {
-    const name = NETWORK_NAMES[network];
-    const length = graphemes(text).length;
-    switch (network) {
-      case "instagram": {
-        const hashtags = text.match(/(^|\s)#[\p{L}\p{N}_]+/gu)?.length ?? 0;
-        if (length > 2200) return `${name} : ${length} caractères, 2 200 maximum.`;
-        if (hashtags > 30) return `${name} : ${hashtags} hashtags, 30 maximum.`;
-        return null;
-      }
-      case "youtube": {
-        const bytes = Buffer.byteLength(text.replace(/[<>]/g, ""), "utf8");
-        return bytes > 5000 ? `${name} : texte trop long (${bytes} octets, 5 000 maximum ; un accent ou un emoji compte pour plusieurs octets).` : null;
-      }
-      case "bluesky":
-        return length > BLUESKY_MAX_TEXT ? `${name} : ${length} caractères, ${BLUESKY_MAX_TEXT} maximum.` : null;
-      case "twitter": {
-        const weight = tweetWeight(text);
-        return weight > TWEET_TEXT_BUDGET
-          ? `${name} : ${weight} caractères décomptés (un emoji compte double), ${TWEET_TEXT_BUDGET} maximum car le lien YouTube est ajouté à la fin.`
-          : null;
-      }
-      case "linkedin":
-        return length > 3000 ? `${name} : ${length} caractères, 3 000 maximum.` : null;
-      case "facebook":
-        return length > 5000 ? `${name} : ${length} caractères, 5 000 maximum.` : null;
-    }
-  };
-
+  const networkName = (id: string) => NETWORK_NAMES[id as NetworkId] ?? id;
   const networkText = (network: string) => z.string().max(10000).optional().describe(network);
 
   action(
@@ -467,20 +432,20 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
     {
       title: "Publier une vidéo sur les réseaux",
       description:
-        "Publie une vidéo sur les réseaux sociaux configurés (Instagram, Facebook, YouTube, Bluesky ; LinkedIn et X " +
-        "partagent ensuite le lien YouTube), comme la page « Publier une vidéo ». La vidéo est téléchargée depuis un lien de " +
-        "partage (Google Drive, Dropbox ou lien direct, 512 Mo maximum), compressée puis publiée en arrière-plan : la réponse " +
-        "arrive tout de suite, le résultat de chaque réseau quelques minutes plus tard avec list_video_posts. La publication est " +
-        "publique et ne peut pas être annulée d'ici. " +
-        "Par défaut, tous les réseaux configurés reçoivent le même texte (description, coupée à 280 caractères). Adaptez plutôt " +
+        "Publie une vidéo sur les réseaux sociaux connectés au compte Upload-Post de Créatoké (Instagram en Reel, TikTok, " +
+        "YouTube, Facebook, LinkedIn, X, Threads, Bluesky), comme la page « Publier une vidéo ». La vidéo est téléchargée " +
+        "depuis un lien de partage (Google Drive, Dropbox ou lien direct, 512 Mo maximum), compressée puis publiée en " +
+        "arrière-plan : la réponse arrive tout de suite, le résultat de chaque réseau quelques minutes plus tard avec " +
+        "list_video_posts. La publication est publique et ne peut pas être annulée d'ici. " +
+        "Par défaut, tous les réseaux connectés reçoivent le même texte (description, coupée à 280 caractères). Adaptez plutôt " +
         "le texte à chaque réseau avec texts : description YouTube complète et référencée (5 000 octets), légende Instagram avec " +
-        "hashtags (2 200 caractères, 30 hashtags), ton professionnel pour LinkedIn (3 000), texte court pour Bluesky (300) et " +
-        "X (256, un emoji compte double, le lien YouTube est ajouté automatiquement), Facebook (5 000). Un texte trop long est " +
-        "refusé. networks limite la publication à certains réseaux ; LinkedIn et X exigent YouTube. Montrez à l'utilisateur " +
-        "chaque texte et la liste des réseaux avant de publier." + CONFIRM,
+        "hashtags (2 200 caractères, 30 hashtags), TikTok (2 200), ton professionnel pour LinkedIn (3 000), Facebook (5 000), " +
+        "texte court pour X (280, un emoji compte double ; les liens sont retirés par X), Bluesky (300) et Threads (500 octets). " +
+        "Un texte trop long est refusé. networks limite la publication à certains réseaux. Montrez à l'utilisateur chaque " +
+        "texte et la liste des réseaux avant de publier." + CONFIRM,
       inputSchema: {
         video_link: z.string().url().describe("Lien vers la vidéo (https)"),
-        title: z.string().min(1).max(100).describe("Titre (utilisé par YouTube, Facebook et l'aperçu LinkedIn)"),
+        title: z.string().min(1).max(100).describe("Titre (utilisé par YouTube, Facebook et LinkedIn)"),
         description: z
           .string()
           .min(1)
@@ -489,11 +454,13 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
         texts: z
           .object({
             instagram: networkText("Légende du Reel Instagram"),
-            facebook: networkText("Description de la vidéo Facebook"),
+            tiktok: networkText("Légende TikTok"),
             youtube: networkText("Description YouTube"),
+            facebook: networkText("Description de la vidéo Facebook"),
+            linkedin: networkText("Texte du post LinkedIn"),
+            twitter: networkText("Texte du post X"),
+            threads: networkText("Texte du post Threads"),
             bluesky: networkText("Texte du post Bluesky"),
-            linkedin: networkText("Texte du post LinkedIn (le lien YouTube est joint en aperçu)"),
-            twitter: networkText("Texte du post X, sans le lien YouTube (ajouté automatiquement)"),
           })
           .strict()
           .optional()
@@ -502,82 +469,60 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
           .array(z.enum(NETWORK_IDS))
           .min(1)
           .optional()
-          .describe("Réseaux à utiliser (tous les réseaux configurés par défaut)"),
+          .describe("Réseaux à utiliser (tous les réseaux connectés par défaut)"),
       },
       annotations: { ...WRITE, openWorldHint: true },
     },
     async ({ video_link, title, description, texts, networks }) => {
-      const configured = networkStatus().filter((n) => n.configured).map((n) => n.id);
-      if (!configured.length) throw new ActionError("Aucun réseau social n'est configuré sur le serveur.");
-      const names = (ids: readonly string[]) => ids.map((id) => NETWORK_NAMES[id] ?? id).join(", ");
+      const statuses = await networkStatus().catch((error) => {
+        throw new ActionError(error instanceof Error ? error.message : String(error));
+      });
+      const configured = statuses.filter((n) => n.configured).map((n) => n.id);
+      if (!configured.length) throw new ActionError("Aucun réseau social n'est connecté sur le compte Upload-Post.");
+      const names = (ids: readonly string[]) => ids.map(networkName).join(", ");
 
       const targets = networks ? NETWORK_IDS.filter((id) => networks.includes(id)) : configured;
       const missing = targets.filter((id) => !configured.includes(id));
       if (missing.length) {
-        throw new ActionError(`Non configuré sur le serveur : ${names(missing)}. Réseaux disponibles : ${names(configured)}.`);
-      }
-      const sharing = targets.filter((id) => id === "linkedin" || id === "twitter");
-      if (sharing.length && !targets.includes("youtube")) {
-        const verb = sharing.length > 1 ? "partagent" : "partage";
-        throw new ActionError(`${names(sharing)} ${verb} le lien de la vidéo YouTube : ajoutez YouTube aux réseaux ou retirez ${names(sharing)}.`);
+        throw new ActionError(`Non connecté sur Upload-Post : ${names(missing)}. Réseaux disponibles : ${names(configured)}.`);
       }
 
       const dedicated: Partial<Record<NetworkId, string>> = {};
       const problems: string[] = [];
-      for (const id of NETWORK_IDS) {
+      const text = Array.from(description.trim()).slice(0, 280).join("");
+      for (const id of targets) {
         const value = texts?.[id]?.trim();
         if (!value) continue;
-        if (!targets.includes(id)) {
-          problems.push(`Un texte est prévu pour ${NETWORK_NAMES[id]}, qui ne fait pas partie des réseaux choisis.`);
-          continue;
-        }
+        dedicated[id] = value;
         const problem = textProblem(id, value);
         if (problem) problems.push(problem);
-        dedicated[id] = value;
+      }
+      for (const id of NETWORK_IDS) {
+        if (texts?.[id]?.trim() && !targets.includes(id)) {
+          problems.push(`Un texte est prévu pour ${networkName(id)}, qui ne fait pas partie des réseaux choisis.`);
+        }
       }
       if (problems.length) throw new ActionError(`Rien n'a été publié. ${problems.join(" ")}`);
-
-      const text = Array.from(description.trim()).slice(0, 280).join("");
-      const preview = { title, description: text, texts: dedicated, filePath: "", publicUrl: "", mimeType: "" };
 
       // Le téléchargement se fait tout de suite (lien invalide = erreur immédiate),
       // la compression et la publication ensuite, en arrière-plan.
       const imported = await importFileFromUrl(video_link, "video", "");
       const sourcePath = path.join(UPLOAD_DIR, decodeURIComponent(new URL(imported.url).pathname.split("/").pop() ?? ""));
-      const postId = await startVideoPost({ title: title.trim(), description: text, source: "assistant" });
-
-      void (async () => {
-        const compressedName = path.basename(sourcePath).replace(/(\.[^.]+)?$/, "_compressed.mp4");
-        const compressedPath = path.join(UPLOAD_DIR, compressedName);
-        try {
-          await videoCompress(sourcePath, compressedPath);
-        } catch (error) {
-          await fs.promises.unlink(compressedPath).catch(() => undefined);
-          throw new Error(`Compression impossible : ${error instanceof Error ? error.message : "erreur inconnue"}`);
-        } finally {
-          await fs.promises.unlink(sourcePath).catch(() => undefined);
-        }
-        const publicUrl = buildPublicUrl(null, compressedName);
-        if (!publicUrl) throw new Error("Adresse publique des fichiers non configurée.");
-        const results = await publishVideo(
-          { title: title.trim(), description: text, texts: dedicated, filePath: compressedPath, publicUrl, mimeType: "video/mp4" },
-          targets,
-        );
-        await finishVideoPost(postId, { videoUrl: publicUrl, results });
-      })().catch(async (error) => {
-        console.error("[social] publication assistant :", error instanceof Error ? error.message : error);
-        await finishVideoPost(postId, { error: error instanceof Error ? error.message : String(error) }).catch(() => undefined);
+      const postId = await startPublication({
+        sourcePath,
+        title: title.trim(),
+        description: text,
+        texts: dedicated,
+        networks: targets,
+        source: "assistant",
       });
 
       return {
         message: "Vidéo reçue : compression et publication en cours. Le résultat de chaque réseau sera visible dans quelques minutes (list_video_posts).",
         publication: postId,
-        reseaux: targets.map((id) => NETWORK_NAMES[id] ?? id),
+        reseaux: targets.map(networkName),
         textes_publies: Object.fromEntries(
-          targets.map((id) => [
-            NETWORK_NAMES[id] ?? id,
-            id === "twitter" || id === "linkedin" ? `${textFor(preview, id)} (+ lien YouTube)` : textFor(preview, id),
-          ]),
+          targets.map((id) => [networkName(id), fitText(id, textFor({ description: text, texts: dedicated }, id))]),
         ),
       };
     },
@@ -589,7 +534,7 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
       title: "Vidéos publiées et résultats",
       description:
         "Historique des vidéos publiées sur les réseaux (depuis le site ou l'assistant), avec le résultat de chaque réseau " +
-        "(publiée avec lien, échec avec la raison, ignorée) et la liste des réseaux configurés. Exemples : « La vidéo est-elle " +
+        "(publiée avec lien, échec avec la raison, ignorée) et la liste des réseaux connectés sur Upload-Post. Exemples : « La vidéo est-elle " +
         "bien partie sur YouTube ? », « Qu'a-t-on publié ce mois-ci ? ».",
       inputSchema: { limit: z.number().int().min(1).max(100).optional().describe("Nombre de publications (10 par défaut)") },
       annotations: { title: "Vidéos publiées et résultats", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -604,7 +549,16 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
         return p.status === "failed" ? "échec" : "terminée";
       };
       return json({
-        reseaux_configures: networkStatus().map((n) => ({ reseau: NETWORK_NAMES[n.id] ?? n.id, configure: n.configured })),
+        reseaux_connectes: await networkStatus()
+          .then((list) =>
+            list.map((n) => ({
+              reseau: networkName(n.id),
+              connecte: n.configured,
+              ...(n.account ? { compte: n.account } : {}),
+              ...(n.reauthRequired ? { detail: "à reconnecter sur app.upload-post.com" } : {}),
+            })),
+          )
+          .catch((error) => `Upload-Post injoignable : ${error instanceof Error ? error.message : error}`),
         publications: posts.map((p) => ({
           id: p.id,
           date: p.created_at,
@@ -615,7 +569,7 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
           ...(p.error ? { erreur: p.error } : {}),
           resultats: p.results
             ? (JSON.parse(p.results) as { network: string; status: string; url?: string; message?: string }[]).map((r) => ({
-                reseau: NETWORK_NAMES[r.network] ?? r.network,
+                reseau: networkName(r.network),
                 etat: r.status === "ok" ? "publiée" : r.status === "error" ? "échec" : "ignorée",
                 ...(r.url ? { lien: r.url } : {}),
                 ...(r.message ? { detail: r.message } : {}),

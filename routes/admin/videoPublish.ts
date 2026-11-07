@@ -1,17 +1,17 @@
-// routes/admin/videoPublish.ts — envoi d'une vidéo et publication sur les réseaux sociaux
+// routes/admin/videoPublish.ts — envoi d'une vidéo et publication sur les réseaux sociaux (via Upload-Post)
 import express, { type Request, type Response, type NextFunction } from "express";
 import multer from "multer";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { networkStatus, publishVideo } from "../../services/social/publish.ts";
-import { recordVideoPost } from "../../services/social/history.ts";
-import { videoCompress } from "../../utils/videoCompress.ts";
-import { UPLOAD_DIR, buildPublicUrl } from "../../services/storage.ts";
+import { networkStatus } from "../../services/social/uploadPost.ts";
+import { startPublication } from "../../services/social/publishJob.ts";
+import { getVideoPost } from "../../services/social/history.ts";
+import { NETWORK_IDS, type NetworkId } from "../../services/social/common.ts";
+import { UPLOAD_DIR } from "../../services/storage.ts";
 import verifyTokenMiddleware from "../../database/auth.ts";
 
 const router = express.Router();
-const fsp = fs.promises;
 
 // Multer: disque + nom unique + filtre vidéo
 const storage = multer.diskStorage({
@@ -36,62 +36,68 @@ const upload = multer({
   limits: { fileSize: 512 * 1024 * 1024 }, // 512 Mo
 });
 
-// Historique (table video_posts) : un échec d'écriture ne doit jamais bloquer la publication.
-const remember = (post: Parameters<typeof recordVideoPost>[0]) =>
-  recordVideoPost(post).catch((error) => console.error("[social] historique :", error instanceof Error ? error.message : error));
-
 function truncateText(text: string | undefined, max = 280): string {
   if (!text) return "";
   // découpe Unicode-safe
   return Array.from(text).slice(0, max).join("");
 }
 
-// Réseaux configurés (variables d'environnement présentes), affichés sur la page de publication
-router.get("/networks", verifyTokenMiddleware, (_req: Request, res: Response) => {
-  res.json({ networks: networkStatus() });
+// Réseaux connectés sur le profil Upload-Post, affichés sur la page de publication
+router.get("/networks", verifyTokenMiddleware, async (_req: Request, res: Response) => {
+  try {
+    res.json({ networks: await networkStatus() });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[social] réseaux :", message);
+    res.json({ networks: NETWORK_IDS.map((id) => ({ id, configured: false })), error: message });
+  }
 });
 
 // Authentification vérifiée AVANT multer : aucun fichier écrit sans token valide.
-// La réponse détaille le résultat de chaque réseau : un échec n'annule pas les autres publications.
+// Réponse immédiate (202) avec l'id de la publication : compression et envoi continuent en
+// arrière-plan, la page suit le résultat avec GET /video/posts/:id.
 router.post("/publish", verifyTokenMiddleware, upload.single("video"), async (req: Request, res: Response) => {
   if (!req.file) {
     return res.status(400).json({ status: "error", message: "Aucun fichier fourni" });
   }
-
   const sourcePath = req.file.path;
-  const compressedName = req.file.filename.replace(/(\.[^.]+)$/, "_compressed.mp4");
-  const compressedPath = path.join(UPLOAD_DIR, compressedName);
 
   const title = String(req.body?.title || "").trim();
   const description = truncateText(String(req.body?.description || "").trim(), 280);
+  const requested = String(req.body?.networks || "")
+    .split(",")
+    .map((n) => n.trim())
+    .filter(Boolean);
+  const networks = requested.filter((n): n is NetworkId => (NETWORK_IDS as readonly string[]).includes(n));
+
+  if (!title || !description) {
+    await fs.promises.unlink(sourcePath).catch(() => {});
+    return res.status(400).json({ status: "error", message: "Titre et description obligatoires." });
+  }
+  if (requested.length && !networks.length) {
+    await fs.promises.unlink(sourcePath).catch(() => {});
+    return res.status(400).json({ status: "error", message: "Aucun réseau valide choisi." });
+  }
 
   try {
-    await videoCompress(sourcePath, compressedPath);
+    const id = await startPublication({ sourcePath, title, description, networks: networks.length ? networks : undefined, source: "site" });
+    return res.status(202).json({ status: "running", id });
   } catch (error) {
-    await fsp.unlink(compressedPath).catch(() => {});
-    const message = `Compression impossible : ${error instanceof Error ? error.message : "erreur inconnue"}`;
-    await remember({ title, description, source: "site", error: message });
-    return res.status(500).json({ status: "error", message });
-  } finally {
-    await fsp.unlink(sourcePath).catch(() => {});
+    await fs.promises.unlink(sourcePath).catch(() => {});
+    return res.status(500).json({ status: "error", message: error instanceof Error ? error.message : "Erreur serveur" });
   }
+});
 
-  // Le fichier compressé reste dans uploads/ : Instagram et Facebook le téléchargent par son URL
-  const publicUrl = buildPublicUrl(req, compressedName);
-  if (!publicUrl) {
-    return res.status(500).json({ status: "error", message: "Impossible de construire l'URL publique." });
-  }
-
-  const results = await publishVideo({
-    title,
-    description,
-    filePath: compressedPath,
-    publicUrl,
-    mimeType: "video/mp4",
+// Suivi d'une publication : status running | done | failed, résultat de chaque réseau
+router.get("/posts/:id", verifyTokenMiddleware, async (req: Request, res: Response) => {
+  const post = await getVideoPost(Number(req.params.id)).catch(() => null);
+  if (!post) return res.status(404).json({ status: "error", message: "Publication introuvable." });
+  return res.json({
+    id: post.id,
+    status: post.status,
+    error: post.error,
+    results: post.results ? JSON.parse(post.results) : [],
   });
-  await remember({ title, description, source: "site", videoUrl: publicUrl, results });
-
-  return res.status(200).json({ status: "ok", videoUrl: publicUrl, results });
 });
 
 // ✅ Middleware d'erreurs Multer (pour tailles, type, etc.)

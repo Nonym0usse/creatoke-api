@@ -7,7 +7,6 @@
     "start": "nodemon --ext ts --watch . --ignore uploads --exec \"node bin/www.ts\"",
     "prod": "node bin/www.ts",
     "typecheck": "tsc --noEmit",
-    "social:auth": "node scripts/social-auth.ts",
     "social:check": "node scripts/social-check.ts"
   },
   "dependencies": {
