@@ -1,0 +1,137 @@
+<%
+  // Styles en ligne : de nombreuses messageries ignorent les feuilles de style.
+  const violet = '#5438d1';
+  const ink = '#1d1d2b';
+  const muted = '#6b6b7b';
+  const line = '#ebe9f3';
+  const toneColor = (tone) => tone === 'up' ? '#1e7a3c' : tone === 'down' ? '#b42318' : muted;
+  const vsPrevious = evolution(report.current.ca, report.previous.ca);
+  const vsLastYear = evolution(report.current.ca, report.lastYear.ca);
+  const vsYtd = evolution(report.yearToDate.ca, report.yearToDate.lastYearCa);
+%><!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bilan Créatoké <%= report.ofLabel %></title>
+</head>
+<body style="margin:0;padding:0;background:#f4f3f8;font-family:Arial,Helvetica,sans-serif;color:<%= ink %>;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f8;">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
+
+  <!-- En-tête -->
+  <tr><td style="background:#131416;padding:22px 28px;">
+    <div style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#a99cf0;font-weight:bold;">Créatoké</div>
+    <div style="font-size:24px;color:#ffffff;font-weight:bold;margin-top:4px;">Bilan <%= report.ofLabel %></div>
+  </td></tr>
+  <tr><td style="height:4px;background:<%= violet %>;background:linear-gradient(90deg,#5438d1,#8938d1);font-size:0;line-height:0;">&nbsp;</td></tr>
+
+  <!-- Chiffre d'affaires -->
+  <tr><td style="padding:26px 28px 8px;">
+    <div style="font-size:13px;color:<%= muted %>;text-transform:uppercase;letter-spacing:1px;">Chiffre d'affaires</div>
+    <div style="font-size:38px;font-weight:bold;margin:4px 0 6px;"><%= euros(report.current.ca) %></div>
+    <div style="font-size:14px;line-height:1.6;color:<%= muted %>;">
+      <span style="color:<%= toneColor(vsPrevious.tone) %>;font-weight:bold;"><%= vsPrevious.text %></span>
+      par rapport à <%= report.previous.label %> (<%= euros(report.previous.ca) %>)<br>
+      <span style="color:<%= toneColor(vsLastYear.tone) %>;font-weight:bold;"><%= vsLastYear.text %></span>
+      par rapport à <%= report.lastYear.label %> (<%= euros(report.lastYear.ca) %>)
+    </div>
+  </td></tr>
+
+  <!-- Chiffres clés -->
+  <tr><td style="padding:16px 20px 4px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <% [
+        ['Ventes payantes', String(report.current.paid)],
+        ['Panier moyen', report.current.paid ? euros(average) : '—'],
+        ['Téléchargements gratuits', String(report.current.free)],
+      ].forEach(([label, value]) => { %>
+      <td width="33%" style="padding:0 8px;vertical-align:top;">
+        <div style="background:#f6f4fe;border-radius:10px;padding:12px 14px;">
+          <div style="font-size:22px;font-weight:bold;"><%= value %></div>
+          <div style="font-size:12px;color:<%= muted %>;margin-top:2px;"><%= label %></div>
+        </div>
+      </td>
+      <% }) %>
+    </tr></table>
+  </td></tr>
+
+  <!-- Depuis le début de l'année -->
+  <tr><td style="padding:18px 28px 0;">
+    <div style="border:1px solid <%= line %>;border-radius:10px;padding:12px 16px;font-size:14px;line-height:1.6;">
+      <strong>Depuis le début de l'année</strong> (<%= report.yearToDate.label %>) :
+      <strong><%= euros(report.yearToDate.ca) %></strong>,
+      <span style="color:<%= toneColor(vsYtd.tone) %>;font-weight:bold;"><%= vsYtd.text %></span>
+      par rapport à la même période de <%= report.period.year - 1 %> (<%= euros(report.yearToDate.lastYearCa) %>).
+    </div>
+  </td></tr>
+
+  <!-- Évolution sur 6 mois -->
+  <tr><td style="padding:24px 28px 0;">
+    <div style="font-size:16px;font-weight:bold;margin-bottom:10px;">Les 6 derniers mois</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">
+      <% report.trend.forEach((t, i) => { const last = i === report.trend.length - 1; %>
+      <tr>
+        <td width="110" style="padding:4px 0;color:<%= last ? ink : muted %>;<%= last ? 'font-weight:bold;' : '' %>"><%= t.label %></td>
+        <td style="padding:4px 8px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <% const w = barWidth(t.ca); if (w > 0) { %><td width="<%= w %>%" style="height:12px;background:<%= last ? violet : '#c9c0f3' %>;border-radius:6px;font-size:0;line-height:0;">&nbsp;</td><% } %>
+            <td style="font-size:0;line-height:0;">&nbsp;</td>
+          </tr></table>
+        </td>
+        <td width="80" align="right" style="padding:4px 0;<%= last ? 'font-weight:bold;' : '' %>"><%= euros(t.ca) %></td>
+      </tr>
+      <% }) %>
+    </table>
+  </td></tr>
+
+  <!-- Meilleures chansons -->
+  <tr><td style="padding:24px 28px 0;">
+    <div style="font-size:16px;font-weight:bold;margin-bottom:6px;">Meilleures ventes du mois</div>
+    <% if (report.topSongs.length) { %>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+      <% report.topSongs.forEach((s, i) => { %>
+      <tr>
+        <td width="24" style="padding:8px 0;border-bottom:1px solid <%= line %>;color:<%= violet %>;font-weight:bold;"><%= i + 1 %></td>
+        <td style="padding:8px 0;border-bottom:1px solid <%= line %>;"><%= s.titre %></td>
+        <td align="right" style="padding:8px 0 8px 8px;border-bottom:1px solid <%= line %>;color:<%= muted %>;white-space:nowrap;"><%= s.ventes %> vente<%= s.ventes > 1 ? 's' : '' %></td>
+        <td width="80" align="right" style="padding:8px 0;border-bottom:1px solid <%= line %>;font-weight:bold;white-space:nowrap;"><%= euros(s.ca) %></td>
+      </tr>
+      <% }) %>
+    </table>
+    <% } else { %>
+    <p style="font-size:14px;color:<%= muted %>;margin:0;">Aucune vente payante ce mois-ci.</p>
+    <% } %>
+  </td></tr>
+
+  <!-- Licences -->
+  <% if (report.byLicence.length) { %>
+  <tr><td style="padding:24px 28px 0;">
+    <div style="font-size:16px;font-weight:bold;margin-bottom:6px;">Par licence</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+      <% report.byLicence.forEach((l) => { %>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid <%= line %>;"><%= l.licence %></td>
+        <td align="right" style="padding:8px 0 8px 8px;border-bottom:1px solid <%= line %>;color:<%= muted %>;white-space:nowrap;"><%= l.ventes %> vente<%= l.ventes > 1 ? 's' : '' %></td>
+        <td width="80" align="right" style="padding:8px 0;border-bottom:1px solid <%= line %>;font-weight:bold;white-space:nowrap;"><%= euros(l.ca) %></td>
+      </tr>
+      <% }) %>
+    </table>
+  </td></tr>
+  <% } %>
+
+  <!-- Lien -->
+  <tr><td align="center" style="padding:28px 28px 26px;">
+    <a href="<%= statsUrl %>" style="display:inline-block;padding:12px 26px;background:<%= violet %>;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:bold;font-size:14px;">Voir les statistiques détaillées</a>
+  </td></tr>
+
+  <tr><td style="background:#f6f4fe;padding:14px 28px;font-size:12px;line-height:1.5;color:<%= muted %>;">
+    Bilan envoyé automatiquement au début de chaque mois aux administrateurs de Créatoké. Montants TTC, hors téléchargements gratuits.
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>

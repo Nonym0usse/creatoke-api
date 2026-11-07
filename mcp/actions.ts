@@ -19,6 +19,7 @@ import { BLUESKY_MAX_TEXT } from "../services/social/bluesky.ts";
 import { TWEET_TEXT_BUDGET, tweetWeight } from "../services/social/twitter.ts";
 import { finishVideoPost, listVideoPosts, startVideoPost } from "../services/social/history.ts";
 import { videoCompress } from "../utils/videoCompress.ts";
+import { ofPeriod, periodKey, periodLabel, previousMonth, sendMonthlyReport } from "../services/monthlyReport.ts";
 import { UPLOAD_DIR, buildPublicUrl } from "../services/storage.ts";
 import { findProspect, findSong, plain, sectionOf, sectionSlugs, songDetails, songUrl, SITE_URL } from "./shared.ts";
 import { SECTION_ERRORS, Sections } from "../middleware/admin/Sections.ts";
@@ -792,6 +793,38 @@ export function registerActions(server: McpServer, ctx: McpContext): void {
         message: "Relances traitées.",
         prospects_examines: result.processed, relances_envoyees: result.sent, dossiers_clotures: result.closed, erreurs: result.errors,
       };
+    },
+  );
+
+  // ---------------- Bilan mensuel ----------------
+
+  action(
+    "send_monthly_report",
+    {
+      title: "Envoyer le bilan mensuel",
+      description:
+        "Envoie par e-mail le bilan des ventes d'un mois terminé (chiffre d'affaires, évolution, meilleures chansons, licences) " +
+        "aux destinataires habituels du bilan (administrateurs du site). Le bilan du mois précédent part déjà tout seul le 1er " +
+        "du mois : cet outil sert à le renvoyer ou à envoyer celui d'un mois passé. Pour simplement lire les chiffres, utilisez " +
+        "sales_summary." + CONFIRM,
+      inputSchema: {
+        year: z.number().int().min(2020).max(2100).optional().describe("Année (par défaut celle du mois précédent)"),
+        month: z.number().int().min(1).max(12).optional().describe("Mois de 1 à 12 (par défaut le mois précédent)"),
+      },
+      annotations: { ...WRITE, openWorldHint: true },
+    },
+    async ({ year, month }) => {
+      const last = previousMonth();
+      const period = { year: year ?? last.year, month: month ?? (year ? 12 : last.month) };
+      if (periodKey(period) > periodKey(last)) {
+        throw new ActionError(`Le mois de ${periodLabel(period)} n'est pas terminé : le bilan ne peut porter que sur un mois écoulé.`);
+      }
+      const outcome = await sendMonthlyReport(period, { force: true });
+      if (outcome.status === "no_recipients") {
+        throw new ActionError("Aucun destinataire : ni adresse MONTHLY_REPORT_TO, ni compte administrateur.");
+      }
+      if (outcome.status !== "sent") throw new ActionError("Le bilan n'a pas pu être envoyé.");
+      return { message: `Bilan ${ofPeriod(period)} envoyé.`, objet: outcome.subject, destinataires: outcome.recipients };
     },
   );
 

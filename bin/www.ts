@@ -7,6 +7,7 @@ import http from "node:http";
 import createDebug from "debug";
 import app from "../app.ts";
 import { startProspectSequenceJob } from "../jobs/prospectSequence.ts";
+import { startMonthlyReportJob } from "../jobs/monthlyReport.ts";
 
 const debug = createDebug("creatoke-api:server");
 
@@ -25,8 +26,9 @@ server.listen(port);
 server.on("error", onError);
 server.on("listening", onListening);
 
-// Relances éditeurs : job quotidien démarré avec le serveur.
+// Relances éditeurs et bilan mensuel : jobs démarrés avec le serveur.
 startProspectSequenceJob();
+startMonthlyReportJob();
 
 /**
  * Normalize a port into a number, string, or false.
